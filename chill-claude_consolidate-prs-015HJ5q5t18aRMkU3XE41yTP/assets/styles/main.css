@@ -1278,6 +1278,151 @@ a:focus {
 }
 
 /* ========================================
+   PIN-AND-TRANSFORM CHOREOGRAPHY STYLES
+   ======================================== */
+
+/* Pin containers */
+.narrative-pin-container,
+.footer-pin-container {
+  position: relative;
+  width: 100%;
+}
+
+/* Pinned elements */
+[data-pin="true"] {
+  will-change: transform;
+}
+
+/* Hero progress indicator */
+.hero {
+  --hero-progress: 0;
+}
+
+/* Narrative cards during pin */
+.narrative__item {
+  transition: transform 800ms cubic-bezier(0.23, 1, 0.32, 1),
+              opacity 600ms cubic-bezier(0.23, 1, 0.32, 1),
+              filter 500ms cubic-bezier(0.23, 1, 0.32, 1),
+              border-radius 800ms cubic-bezier(0.23, 1, 0.32, 1),
+              backdrop-filter 700ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Immersion cards during pin */
+.immersion-card__frame {
+  transition: transform 800ms cubic-bezier(0.23, 1, 0.32, 1),
+              opacity 800ms cubic-bezier(0.23, 1, 0.32, 1),
+              border-radius 800ms cubic-bezier(0.23, 1, 0.32, 1),
+              backdrop-filter 800ms cubic-bezier(0.23, 1, 0.32, 1),
+              filter 600ms cubic-bezier(0.23, 1, 0.32, 1),
+              scale 600ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.immersion-card[data-pulsing="true"] .immersion-card__frame {
+  animation: cardPulse 2s ease-in-out infinite;
+}
+
+@keyframes cardPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.02);
+    filter: brightness(1.1) saturate(1.2);
+  }
+}
+
+/* Orchestra cards during pin */
+.scroll-card__inner {
+  transition: width 1500ms cubic-bezier(0.23, 1, 0.32, 1),
+              height 1500ms cubic-bezier(0.23, 1, 0.32, 1),
+              border-radius 1200ms cubic-bezier(0.23, 1, 0.32, 1),
+              opacity 1000ms cubic-bezier(0.23, 1, 0.32, 1),
+              backdrop-filter 1000ms cubic-bezier(0.23, 1, 0.32, 1),
+              filter 800ms cubic-bezier(0.23, 1, 0.32, 1),
+              scale 800ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Morph phase visual states */
+[data-morph="circle"] {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+[data-morph="circle"] .scroll-card__stages,
+[data-morph="circle"] .scroll-card__expansion {
+  opacity: 0;
+  pointer-events: none;
+}
+
+[data-morph="expanding"] {
+  overflow: hidden;
+}
+
+[data-morph="full"] {
+  overflow-y: auto;
+}
+
+[data-morph="peak"] {
+  backdrop-filter: blur(52px) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+[data-morph="background"] {
+  pointer-events: none;
+  z-index: -1;
+}
+
+[data-morph="dissolved"] {
+  visibility: hidden;
+}
+
+/* Stage transitions within cards */
+.stage {
+  transition: opacity 800ms cubic-bezier(0.23, 1, 0.32, 1),
+              transform 800ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.stage[data-active="false"] {
+  opacity: 0;
+  transform: translateY(30px) scale(0.95);
+  pointer-events: none;
+}
+
+.stage[data-active="true"] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Footer breathing animation */
+.site-footer {
+  will-change: transform, opacity;
+}
+
+/* Smooth scrolling enhancements for pinned content */
+.gsap-pin {
+  overflow: hidden !important;
+}
+
+.gsap-pin-spacer {
+  display: block !important;
+}
+
+/* Character animations during text morphing */
+.char {
+  display: inline-block;
+  transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Word animations */
+.word {
+  display: inline-block;
+  transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              opacity 400ms ease;
+}
+
+/* ========================================
    ADVANCED MORPH ENGINE STYLES
    ======================================== */
 

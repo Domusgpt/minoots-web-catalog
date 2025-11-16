@@ -1274,10 +1274,16 @@ async function init() {
   // Initialize comprehensive animation orchestrator
   const animationOrchestrator = new AnimationOrchestrator(visualizers);
 
-  // Initialize GSAP-based morphing choreography
-  const morphChoreography = new MorphChoreography(visualizers);
+  // Initialize PIN-AND-TRANSFORM CHOREOGRAPHY (new system with proper rhythm)
+  const { PinChoreography } = await import('./pin-choreography.js');
+  const pinChoreography = new PinChoreography(
+    visualizers,
+    window.gsap,
+    window.ScrollTrigger,
+    window.SplitType
+  );
 
-  // Initialize ADVANCED MORPH ENGINE
+  // Initialize ADVANCED MORPH ENGINE (for hover effects and text morphing)
   const { MorphEngine } = await import('./morph-engine.js');
   const morphEngine = new MorphEngine(
     visualizers,
@@ -1286,8 +1292,9 @@ async function init() {
     window.SplitType
   );
 
-  // Make morph engine globally accessible for debugging
+  // Make engines globally accessible for debugging
   window.MORPH_ENGINE = morphEngine;
+  window.PIN_CHOREOGRAPHY = pinChoreography;
 
   setupCardReactivity(visualizers);
   setupScrollDirector(visualizers);
@@ -1296,13 +1303,18 @@ async function init() {
   console.log('🚀 Minoots Temporal Systems initialized');
   console.log('   ✨ Lenis smooth scrolling');
   console.log('   🎭 SplitType text animations');
-  console.log('   🎬 GSAP morphing choreography');
+  console.log('   📌 Pin-and-Transform Choreography (NEW!)');
   console.log('   🌀 Advanced Morph Engine');
   console.log('   🎨 Section mode switching');
   console.log('   🌊 Parallax layers');
   console.log('   💫 WebGL 4D visualizers');
   console.log('   🔄 Layer switching system');
   console.log('   ⚡ Hover-focus pipeline');
+  console.log('');
+  console.log('   Total site height: ~5700vh (stretchy rhythm)');
+  console.log('   Hero: 250vh pinned | Narrative: 400vh');
+  console.log('   Immersion: 600vh | Orchestra: 3600vh');
+  console.log('   Capstone: 200vh | Footer: 150vh');
 }
 
 document.addEventListener("DOMContentLoaded", init);
