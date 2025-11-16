@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMONE - A New Reality</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #F5F3EF;
+            --text-color: #2E4E4B;
+            --accent-color: #D4FC79;
+            --circle-bg: #2E4E4B;
+            --font-main: 'Poppins', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+
+        /* Simple background texture */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-image: url('data:image/svg+xml,%3Csvg width="6" height="6" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="%232E4E4B" fill-opacity="0.02" fill-rule="evenodd"%3E%3Cpath d="M5 0h1L0 6V5zM6 5v1H5z"/%3E%3C/g%3E%3C/svg%3E');
+            z-index: -1;
+        }
+
+        .quantum-layers {
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            pointer-events: none;
+            opacity: 0.1; /* Blend visualizer with light theme */
+        }
+
+        .quantum-canvas {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 2rem 4rem;
+            z-index: 100;
+        }
+
+        nav {
+            display: flex;
+            justify-content: flex-end;
+            gap: 2rem;
+        }
+
+        nav a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        main {
+            width: 100%;
+        }
+
+        section {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .hero {
+            flex-direction: column;
+        }
+
+        .simone-title {
+            font-size: clamp(4rem, 15vw, 12rem);
+            font-weight: 600;
+            color: var(--text-color);
+            display: flex; /* For letter animation targets */
+            position: relative;
+            transition: transform 0.5s ease-out; /* For parallax */
+        }
+
+        .image-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .small-image {
+            position: absolute;
+            width: 100px;
+            height: 120px;
+            background-color: var(--text-color); /* Placeholder color */
+            border-radius: 20px;
+            /* Initial positions will be set by JS */
+            opacity: 0;
+            transition: transform 0.1s linear, top 0.1s linear, left 0.1s linear; /* Smooth movement */
+        }
+
+        .expanding-circle-section {
+            height: 150vh; /* Taller section for scroll animations */
+        }
+
+        .expanding-circle {
+            width: 300px; /* Initial state: circle */
+            height: 300px;
+            background-color: var(--circle-bg);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            color: var(--bg-color);
+            position: sticky; /* Sticky positioning for the scroll effect */
+            top: calc(50vh - 150px);
+            transform-origin: center center;
+            transition: width 0.5s ease-out, height 0.5s ease-out, border-radius 0.5s ease-out; /* Smooth transitions */
+        }
+
+        .circle-text-1 {
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+
+        .circle-text-2 {
+            font-size: 1.5rem;
+            font-weight: 500;
+            background-color: var(--accent-color);
+            color: var(--text-color);
+            padding: 0.2rem 0.5rem;
+            opacity: 0; /* Initially hidden */
+            transition: opacity 0.3s ease-in-out;
+        }
+
+    </style>
+</head>
+<body>
+    <!-- VIB3+ Quantum Visualizer -->
+    <div class="quantum-layers" id="quantum-layers">
+        <canvas id="quantum-background" class="quantum-canvas"></canvas>
+        <canvas id="quantum-shadow" class="quantum-canvas"></canvas>
+        <canvas id="quantum-content" class="quantum-canvas"></canvas>
+        <canvas id="quantum-highlight" class="quantum-canvas"></canvas>
+        <canvas id="quantum-accent" class="quantum-canvas"></canvas>
+    </div>
+
+    <header>
+        <nav>
+            <a href="#">Home</a>
+            <a href="#">Work</a>
+            <a href="#">About</a>
+            <a href="#">Contact</a>
+        </nav>
+    </header>
+
+    <main id="smooth-scroll-container">
+        <section class="hero">
+            <h1 class="simone-title">
+                <span>S</span><span>I</span><span>M</span><span>O</span><span>N</span><span>E</span>
+            </h1>
+            <div class="image-container">
+                <div class="small-image" id="img1"></div>
+                <div class="small-image" id="img2"></div>
+                <div class="small-image" id="img3"></div>
+                <div class="small-image" id="img4"></div>
+            </div>
+        </section>
+
+        <section class="expanding-circle-section">
+            <div class="expanding-circle">
+                <p class="circle-text-1">What if we could alter reality</p>
+                <p class="circle-text-2">for the better?</p>
+            </div>
+        </section>
+    </main>
+
+    <script type="module">
+        // ========== VIB3+ QUANTUM VISUALIZER ==========
+        class QuantumVisualizer {
+            constructor(canvasId, role, reactivity) {
+                this.canvas = document.getElementById(canvasId);
+                this.role = role;
+                this.reactivity = reactivity;
+
+                this.gl = this.canvas.getContext('webgl2') || this.canvas.getContext('webgl');
+                if (!this.gl) return;
+
+                this.startTime = Date.now();
+                this.params = {
+                    geometry: 2,
+                    gridDensity: 30,
+                    morphFactor: 1.0,
+                    chaos: 0.1, // Reduced chaos
+                    speed: 0.8,
+                    hue: 0.556,
+                    intensity: 0.2, // Reduced intensity
+                    saturation: 0.8,
+                    dimension: 3.5,
+                    rot4dXW: 0.0,
+                    rot4dYW: 0.0,
+                    rot4dZW: 0.0,
+                    offsetY: 0.0
+                };
+
+                this.init();
+            }
+
+            init() {
+                this.initShaders();
+                this.initBuffers();
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+            }
+
+            initShaders() {
+                const vertexShader = `
+                    attribute vec2 a_position;
+                    void main() {
+                        gl_Position = vec4(a_position, 0.0, 1.0);
+                    }
+                `;
+
+                const fragmentShader = `
+                    #ifdef GL_FRAGMENT_PRECISION_HIGH
+                        precision highp float;
+                    #else
+                        precision mediump float;
+                    #endif
+
+                    uniform vec2 u_resolution;
+                    uniform float u_time;
+                    uniform float u_geometry;
+                    uniform float u_gridDensity;
+                    uniform float u_chaos;
+                    uniform float u_speed;
+                    uniform float u_hue;
+                    uniform float u_intensity;
+                    uniform float u_rot4dXW;
+                    uniform float u_rot4dYW;
+                    uniform float u_rot4dZW;
+                    uniform float u_roleIntensity;
+                    uniform float u_offsetY;
+
+                    mat4 rotateXW(float theta) {
+                        float c = cos(theta);
+                        float s = sin(theta);
+                        return mat4(c, 0.0, 0.0, -s, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, s, 0.0, 0.0, c);
+                    }
+
+                    vec3 hsv2rgb(vec3 c) {
+                        vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+                    }
+
+                    vec3 project4Dto3D(vec4 p) {
+                        float w = 2.5 / (2.5 + p.w);
+                        return vec3(p.x * w, p.y * w, p.z * w);
+                    }
+
+                    float sphereLattice(vec3 p, float gridSize) {
+                        vec3 cell = fract(p * gridSize) - 0.5;
+                        return 1.0 - smoothstep(0.15, 0.25, length(cell));
+                    }
+
+                    void main() {
+                        vec2 uv = (gl_FragCoord.xy - u_resolution.xy * 0.5) / min(u_resolution.x, u_resolution.y);
+
+                        float timeSpeed = u_time * 0.0001 * u_speed;
+                        vec4 pos = vec4(uv * 3.0, sin(timeSpeed * 3.0), cos(timeSpeed * 2.0));
+
+                        pos = rotateXW(u_rot4dXW) * pos;
+
+                        vec3 p3d = project4Dto3D(pos);
+                        float value = sphereLattice(p3d, u_gridDensity * 0.08);
+
+                        float noise = sin(pos.x * 7.0) * cos(pos.y * 11.0);
+                        value += noise * u_chaos;
+
+                        float finalIntensity = pow(1.0 - clamp(abs(value), 0.0, 1.0), 2.0) * u_intensity;
+
+                        vec3 color = hsv2rgb(vec3(u_hue, 0.3, 0.8)); // Softer colors
+
+                        gl_FragColor = vec4(color * finalIntensity, finalIntensity * 0.5);
+                    }
+                `;
+
+                this.program = this.createProgram(vertexShader, fragmentShader);
+
+                this.uniforms = {
+                    resolution: this.gl.getUniformLocation(this.program, 'u_resolution'),
+                    time: this.gl.getUniformLocation(this.program, 'u_time'),
+                    geometry: this.gl.getUniformLocation(this.program, 'u_geometry'),
+                    gridDensity: this.gl.getUniformLocation(this.program, 'u_gridDensity'),
+                    chaos: this.gl.getUniformLocation(this.program, 'u_chaos'),
+                    speed: this.gl.getUniformLocation(this.program, 'u_speed'),
+                    hue: this.gl.getUniformLocation(this.program, 'u_hue'),
+                    intensity: this.gl.getUniformLocation(this.program, 'u_intensity'),
+                    rot4dXW: this.gl.getUniformLocation(this.program, 'u_rot4dXW'),
+                };
+            }
+
+            createProgram(vertexSource, fragmentSource) {
+                const vertexShader = this.createShader(this.gl.VERTEX_SHADER, vertexSource);
+                const fragmentShader = this.createShader(this.gl.FRAGMENT_SHADER, fragmentSource);
+
+                const program = this.gl.createProgram();
+                this.gl.attachShader(program, vertexShader);
+                this.gl.attachShader(program, fragmentShader);
+                this.gl.linkProgram(program);
+
+                if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) return null;
+                return program;
+            }
+
+            createShader(type, source) {
+                const shader = this.gl.createShader(type);
+                this.gl.shaderSource(shader, source);
+                this.gl.compileShader(shader);
+
+                if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) return null;
+                return shader;
+            }
+
+            initBuffers() {
+                const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+                this.buffer = this.gl.createBuffer();
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffer);
+                this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
+
+                const positionLocation = this.gl.getAttribLocation(this.program, 'a_position');
+                this.gl.enableVertexAttribArray(positionLocation);
+                this.gl.vertexAttribPointer(positionLocation, 2, this.gl.FLOAT, false, 0, 0);
+            }
+
+            resize() {
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                this.canvas.width = this.canvas.clientWidth * dpr;
+                this.canvas.height = this.canvas.clientHeight * dpr;
+                this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            updateParameters(params) {
+                Object.assign(this.params, params);
+            }
+
+            render() {
+                if (!this.program) return;
+
+                this.gl.useProgram(this.program);
+                this.gl.clearColor(0, 0, 0, 0);
+                this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+
+                const time = Date.now() - this.startTime;
+
+                this.gl.uniform2f(this.uniforms.resolution, this.canvas.width, this.canvas.height);
+                this.gl.uniform1f(this.uniforms.time, time);
+                this.gl.uniform1f(this.uniforms.geometry, this.params.geometry);
+                this.gl.uniform1f(this.uniforms.gridDensity, this.params.gridDensity);
+                this.gl.uniform1f(this.uniforms.chaos, this.params.chaos);
+                this.gl.uniform1f(this.uniforms.speed, this.params.speed);
+                this.gl.uniform1f(this.uniforms.hue, this.params.hue);
+                this.gl.uniform1f(this.uniforms.intensity, this.params.intensity);
+                this.gl.uniform1f(this.uniforms.rot4dXW, this.params.rot4dXW);
+
+                this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+            }
+        }
+
+        // ========== SCROLL CHOREOGRAPHY ==========
+        class ScrollChoreography {
+            constructor(visualizers) {
+                this.visualizers = visualizers;
+                this.heroSection = document.querySelector('.hero');
+                this.simoneTitle = document.querySelector('.simone-title');
+                this.titleLetters = document.querySelectorAll('.simone-title span');
+                this.images = document.querySelectorAll('.small-image');
+                this.circleSection = document.querySelector('.expanding-circle-section');
+                this.expandingCircle = document.querySelector('.expanding-circle');
+                this.circleText2 = document.querySelector('.circle-text-2');
+
+                // For smooth lerping
+                this.targetScroll = window.scrollY;
+                this.currentScroll = window.scrollY;
+                this.lerpFactor = 0.1;
+
+                this.init();
+            }
+
+            init() {
+                this.setupInitialImagePositions();
+                window.addEventListener('scroll', () => {
+                    this.targetScroll = window.scrollY;
+                });
+
+                // Animation loop for smooth scrolling
+                const animate = () => {
+                    this.currentScroll += (this.targetScroll - this.currentScroll) * this.lerpFactor;
+                    this.updateAnimations(this.currentScroll);
+                    requestAnimationFrame(animate);
+                }
+                animate();
+            }
+
+            setupInitialImagePositions() {
+                this.images[0].style.cssText = 'top: 20%; left: 30%; transform: translate(-50%, -50%); opacity: 1;';
+                this.images[1].style.cssText = 'top: 25%; left: 70%; transform: translate(-50%, -50%); opacity: 1;';
+                this.images[2].style.cssText = 'top: 60%; left: 25%; transform: translate(-50%, -50%); opacity: 1;';
+                this.images[3].style.cssText = 'top: 65%; left: 75%; transform: translate(-50%, -50%); opacity: 1;';
+            }
+
+            easeInOutCubic(t) {
+                return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+            }
+
+            updateAnimations(scrollY) {
+                const wh = window.innerHeight;
+
+                // Animate visualizer with scroll
+                const scrollProgress = scrollY / (document.body.scrollHeight - wh);
+                this.visualizers.forEach(v => v.updateParameters({ rot4dXW: scrollProgress * 2.0 }));
+
+                // --- Hero Section Animation ---
+                const heroProgress = this.easeInOutCubic(Math.min(scrollY / wh, 1));
+                this.animateHero(heroProgress, scrollY);
+
+                // --- Expanding Circle Animation ---
+                const circleSectionTop = this.circleSection.offsetTop;
+                if (scrollY > circleSectionTop - wh) {
+                    const circleProgress = (scrollY - (circleSectionTop - wh)) / (this.circleSection.scrollHeight - wh);
+                    this.animateCircle(this.easeInOutCubic(circleProgress));
+                }
+            }
+
+            animateHero(progress, scrollY) {
+                // Parallax for the title
+                this.simoneTitle.style.transform = `translateY(${scrollY * 0.2}px)`;
+
+                const targetLetters = [this.titleLetters[0], this.titleLetters[2], this.titleLetters[3], this.titleLetters[5]];
+
+                this.images.forEach((img, i) => {
+                    const letterRect = targetLetters[i].getBoundingClientRect();
+                    const initialX = parseFloat(img.style.left);
+                    const initialY = parseFloat(img.style.top);
+
+                    const targetX = (letterRect.left + letterRect.width / 2) / window.innerWidth * 100;
+                    const targetY = (letterRect.top + letterRect.height / 2) / window.innerHeight * 100;
+
+                    const currentX = initialX + (targetX - initialX) * progress;
+                    const currentY = initialY + (targetY - initialY) * progress;
+
+                    img.style.left = `${currentX}%`;
+                    img.style.top = `${currentY}%`;
+                    img.style.transform = `translate(-50%, -50%) scale(${1 - progress * 0.5})`;
+                });
+            }
+
+            animateCircle(progress) {
+                const p = Math.max(0, Math.min(1, progress));
+
+                const width = 300 + (Math.min(window.innerWidth * 0.8, 800) - 300) * p;
+                this.expandingCircle.style.width = `${width}px`;
+                this.expandingCircle.style.height = `${width * 0.6}px`;
+                this.expandingCircle.style.borderRadius = `${150 - (150 - 40) * p}px`;
+
+                this.circleText2.style.opacity = (p > 0.5) ? (p - 0.5) * 2 : 0;
+            }
+        }
+
+        // ========== INITIALIZATION ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            const layers = [
+                { id: 'quantum-background', role: 'background' },
+                { id: 'quantum-shadow', role: 'shadow' },
+                { id: 'quantum-content', role: 'content' },
+                { id: 'quantum-highlight', role: 'highlight' },
+                { id: 'quantum-accent', role: 'accent' }
+            ];
+
+            const visualizers = layers.map(layer => new QuantumVisualizer(layer.id, layer.role)).filter(v => v.gl);
+
+            function renderLoop() {
+                visualizers.forEach(viz => viz.render());
+                requestAnimationFrame(renderLoop);
+            }
+            renderLoop();
+
+            new ScrollChoreography(visualizers);
+        });
+    </script>
+</body>
+</html>

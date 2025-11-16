@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Debug Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: monospace;
+            background: #0a0a14;
+            color: #0ff;
+            padding: 20px;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .panel {
+            background: rgba(0, 255, 255, 0.05);
+            border: 1px solid #0ff;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .panel h2 {
+            margin-bottom: 15px;
+            color: #f0f;
+        }
+
+        .status-item {
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 3px solid #0ff;
+        }
+
+        .status-item.error {
+            border-left-color: #f00;
+            color: #f00;
+        }
+
+        .status-item.success {
+            border-left-color: #0f0;
+            color: #0f0;
+        }
+
+        .status-item.warning {
+            border-left-color: #ff0;
+            color: #ff0;
+        }
+
+        .preview-frame {
+            grid-column: 1 / -1;
+            height: 600px;
+            border: 2px solid #0ff;
+            border-radius: 8px;
+            background: #000;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 6px;
+        }
+
+        .controls {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #0ff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #0aa;
+        }
+
+        .log {
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+
+        .log-entry {
+            padding: 4px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+        }
+
+        .metric-value {
+            color: #0f0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; margin-bottom: 30px;">🔍 LIVE DEBUG DASHBOARD</h1>
+
+    <div class="dashboard">
+        <div class="panel">
+            <h2>System Status</h2>
+            <div id="system-status"></div>
+        </div>
+
+        <div class="panel">
+            <h2>Timeline Choreographer</h2>
+            <div id="choreographer-status"></div>
+        </div>
+
+        <div class="panel">
+            <h2>Visualizers</h2>
+            <div id="visualizer-status"></div>
+        </div>
+
+        <div class="panel">
+            <h2>Live Metrics</h2>
+            <div id="metrics"></div>
+        </div>
+
+        <div class="controls">
+            <button onclick="reloadPage()">↻ Reload Page</button>
+            <button onclick="testScrollDown()">↓ Scroll Down</button>
+            <button onclick="testScrollToSection('hero')">Go to Hero</button>
+            <button onclick="testScrollToSection('architecture')">Go to Architecture</button>
+            <button onclick="testScrollToSection('cta')">Go to CTA</button>
+            <button onclick="simulateCardHover()">Test Card Hover</button>
+            <button onclick="clearLogs()">Clear Logs</button>
+        </div>
+
+        <div class="preview-frame">
+            <iframe id="preview" src="index.html"></iframe>
+        </div>
+
+        <div class="panel" style="grid-column: 1 / -1;">
+            <h2>Console Log</h2>
+            <div class="log" id="console-log"></div>
+        </div>
+    </div>
+
+    <script>
+        let iframe;
+        let iframeWindow;
+        let logs = [];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            iframe = document.getElementById('preview');
+
+            iframe.addEventListener('load', () => {
+                iframeWindow = iframe.contentWindow;
+                setupMonitoring();
+                addLog('✅ iframe loaded', 'success');
+            });
+        });
+
+        function setupMonitoring() {
+            // Monitor console
+            const originalLog = iframeWindow.console.log;
+            iframeWindow.console.log = function(...args) {
+                addLog(args.join(' '), 'log');
+                originalLog.apply(iframeWindow.console, args);
+            };
+
+            // Start monitoring loop
+            setInterval(updateStatus, 500);
+        }
+
+        function updateStatus() {
+            if (!iframeWindow) return;
+
+            try {
+                // System Status
+                const systemHtml = `
+                    <div class="status-item ${iframeWindow.gsap ? 'success' : 'error'}">
+                        GSAP: ${iframeWindow.gsap ? '✅ Loaded' : '❌ Missing'}
+                    </div>
+                    <div class="status-item ${iframeWindow.ScrollTrigger ? 'success' : 'error'}">
+                        ScrollTrigger: ${iframeWindow.ScrollTrigger ? '✅ Loaded' : '❌ Missing'}
+                    </div>
+                    <div class="status-item ${iframeWindow.timelineChoreographer ? 'success' : 'error'}">
+                        Timeline Choreographer: ${iframeWindow.timelineChoreographer ? '✅ Active' : '❌ Missing'}
+                    </div>
+                    <div class="status-item ${iframeWindow.quantumVisualizers ? 'success' : 'error'}">
+                        Quantum Visualizers: ${iframeWindow.quantumVisualizers ? `✅ ${iframeWindow.quantumVisualizers.length} layers` : '❌ Missing'}
+                    </div>
+                `;
+                document.getElementById('system-status').innerHTML = systemHtml;
+
+                // Choreographer Status
+                if (iframeWindow.timelineChoreographer) {
+                    const chore = iframeWindow.timelineChoreographer;
+                    const currentSection = chore.currentSection;
+
+                    const choreographerHtml = `
+                        <div class="metric">
+                            <span>Sections:</span>
+                            <span class="metric-value">${chore.sections.length}</span>
+                        </div>
+                        <div class="metric">
+                            <span>Current Section:</span>
+                            <span class="metric-value">${currentSection ? currentSection.id : 'none'}</span>
+                        </div>
+                        <div class="metric">
+                            <span>Theme:</span>
+                            <span class="metric-value">${currentSection ? currentSection.theme : 'none'}</span>
+                        </div>
+                        <div class="metric">
+                            <span>Section Progress:</span>
+                            <span class="metric-value">${(chore.sectionProgress * 100).toFixed(1)}%</span>
+                        </div>
+                        <div class="metric">
+                            <span>Cards Tracked:</span>
+                            <span class="metric-value">${chore.cards.length}</span>
+                        </div>
+                    `;
+                    document.getElementById('choreographer-status').innerHTML = choreographerHtml;
+                }
+
+                // Visualizer Status
+                if (iframeWindow.quantumVisualizers && iframeWindow.quantumVisualizers.length > 0) {
+                    const viz = iframeWindow.quantumVisualizers[0]; // First visualizer
+                    const params = viz.params;
+
+                    const vizHtml = `
+                        <div class="metric">
+                            <span>Intensity:</span>
+                            <span class="metric-value">${params.intensity.toFixed(2)}</span>
+                        </div>
+                        <div class="metric">
+                            <span>Chaos:</span>
+                            <span class="metric-value">${params.chaos.toFixed(2)}</span>
+                        </div>
+                        <div class="metric">
+                            <span>Speed:</span>
+                            <span class="metric-value">${params.speed.toFixed(2)}</span>
+                        </div>
+                        <div class="metric">
+                            <span>Hue:</span>
+                            <span class="metric-value">${params.hue.toFixed(2)}</span>
+                        </div>
+                        <div class="metric">
+                            <span>Geometry:</span>
+                            <span class="metric-value">${params.geometry}</span>
+                        </div>
+                    `;
+                    document.getElementById('visualizer-status').innerHTML = vizHtml;
+                }
+
+                // Live Metrics
+                const scrollY = iframe.contentDocument.documentElement.scrollTop;
+                const scrollHeight = iframe.contentDocument.documentElement.scrollHeight;
+                const viewportHeight = iframe.contentWindow.innerHeight;
+                const scrollPercent = (scrollY / (scrollHeight - viewportHeight) * 100).toFixed(1);
+
+                const metricsHtml = `
+                    <div class="metric">
+                        <span>Scroll Position:</span>
+                        <span class="metric-value">${scrollY}px</span>
+                    </div>
+                    <div class="metric">
+                        <span>Scroll Progress:</span>
+                        <span class="metric-value">${scrollPercent}%</span>
+                    </div>
+                    <div class="metric">
+                        <span>Page Height:</span>
+                        <span class="metric-value">${scrollHeight}px</span>
+                    </div>
+                `;
+                document.getElementById('metrics').innerHTML = metricsHtml;
+
+            } catch (error) {
+                addLog(`Error updating status: ${error.message}`, 'error');
+            }
+        }
+
+        function addLog(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            logs.unshift({ timestamp, message, type });
+
+            if (logs.length > 100) logs.pop();
+
+            updateLogDisplay();
+        }
+
+        function updateLogDisplay() {
+            const logHtml = logs.map(log => {
+                let colorClass = '';
+                if (log.message.includes('❌') || log.message.includes('Error')) colorClass = 'error';
+                else if (log.message.includes('✅')) colorClass = 'success';
+                else if (log.message.includes('⚠️')) colorClass = 'warning';
+
+                return `<div class="log-entry status-item ${colorClass}">[${log.timestamp}] ${log.message}</div>`;
+            }).join('');
+
+            document.getElementById('console-log').innerHTML = logHtml;
+        }
+
+        function reloadPage() {
+            iframe.src = iframe.src;
+            addLog('🔄 Reloading page...', 'log');
+        }
+
+        function testScrollDown() {
+            if (!iframeWindow) return;
+            iframeWindow.scrollBy({ top: 800, behavior: 'smooth' });
+            addLog('↓ Scrolling down 800px', 'log');
+        }
+
+        function testScrollToSection(sectionId) {
+            if (!iframe.contentDocument) return;
+            const section = iframe.contentDocument.getElementById(sectionId);
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                addLog(`🎯 Scrolling to section: ${sectionId}`, 'log');
+            } else {
+                addLog(`❌ Section not found: ${sectionId}`, 'error');
+            }
+        }
+
+        function simulateCardHover() {
+            if (!iframe.contentDocument) return;
+            const card = iframe.contentDocument.querySelector('.morph-card');
+            if (card) {
+                const event = new MouseEvent('mouseenter', { bubbles: true });
+                card.dispatchEvent(event);
+                addLog('🎴 Simulated card hover', 'log');
+
+                setTimeout(() => {
+                    const event = new MouseEvent('mouseleave', { bubbles: true });
+                    card.dispatchEvent(event);
+                }, 1000);
+            }
+        }
+
+        function clearLogs() {
+            logs = [];
+            updateLogDisplay();
+        }
+    </script>
+</body>
+</html>

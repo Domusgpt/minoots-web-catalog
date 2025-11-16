@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minoots • Temporal Orchestration System</title>
+  <link rel="icon" type="image/png" href="./assets/minoots-logo-elegant-favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="assets/styles/main.css" />
+  <script type="module" src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <div class="visualizer-stack" aria-hidden="true">
+    <canvas id="visualizer-primary" class="visualizer visualizer--primary"></canvas>
+    <canvas id="visualizer-accent" class="visualizer visualizer--accent"></canvas>
+  </div>
+
+  <div class="site">
+    <header class="site-header">
+      <div class="brand">
+        <span class="brand__glyph">⟡</span>
+        <span class="brand__word">Minoots</span>
+      </div>
+      <nav class="site-nav">
+        <a href="#hero" class="site-nav__link">Overview</a>
+        <a href="#orchestra" class="site-nav__link">Systems</a>
+        <a href="#capstone" class="site-nav__link">Continuum</a>
+      </nav>
+    </header>
+
+    <main>
+      <section id="hero" class="hero section">
+        <div class="hero__inner">
+          <div class="hero__lead">
+            <p class="eyebrow">Temporal cloud for coordination at exabyte scale</p>
+            <h1 class="hero__title">Scroll the choreography.<br /><span>Conduct the swarm.</span></h1>
+            <p class="hero__subtitle">
+              Minoots aligns distributed systems with sub-microsecond precision, blending consensus, execution,
+              and human intent into a single motion. The surface is calm. The core is electric.
+            </p>
+            <div class="hero__ctas">
+              <a class="button button--primary" href="#orchestra">Experience the systems</a>
+              <a class="button button--ghost" href="#capstone">Download the whitepaper</a>
+            </div>
+          </div>
+          <div class="hero__metrics" id="hero-metrics"></div>
+        </div>
+        <div class="hero__badges" id="hero-badges"></div>
+      </section>
+
+      <section class="section narrative" id="narrative">
+        <div class="narrative__grid">
+          <article class="narrative__item">
+            <h2>Flow-states engineered</h2>
+            <p>
+              Every orchestration primitive maps to a sensory cue — rhythm in the typography, pressure waves in the
+              canvases, and narrative beats in the copy. Systems activate in sequence so the scroll feels like a
+              conductor's sweep.
+            </p>
+          </article>
+          <article class="narrative__item">
+            <h2>Reactive instrumentation</h2>
+            <p>
+              Visualizers translate telemetry into fields of motion. The primary canvas renders system velocity
+              while the accent canvas from Simone’s quantum visualizer traces harmonics that bloom as you hover and
+              breathe.
+            </p>
+          </article>
+          <article class="narrative__item">
+            <h2>Juxtaposed canvases</h2>
+            <p>
+              Two renderers stay in phase: the deep field anchors the brand gradients while the accent lattice slides
+              atop cards and callouts, flaring for consensus spikes and dissolving for calm operations.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section id="orchestra" class="section orchestra">
+        <div class="orchestra__intro">
+          <h2>Systems Scroll</h2>
+          <p>
+            Nine subsystems spiral down the page. Each card locks in the viewport, unfolding four phases that map to
+            the runtime of a production deployment: pulse, structure, telemetry, and story. Watch the canvases react
+            as you glide.
+          </p>
+        </div>
+        <div id="card-track" class="card-track"></div>
+      </section>
+
+      <section id="capstone" class="section capstone">
+        <div class="capstone__inner">
+          <div class="capstone__copy">
+            <h2>Continuum release candidate</h2>
+            <p>
+              Synthesize the full continuum with exportable manifests, deterministic replays, and a studio for
+              choreographing future scroll journeys. Bring the lattice into your own surface.
+            </p>
+            <div class="capstone__cta">
+              <a class="button button--primary" href="#hero">Book the private demo</a>
+              <a class="button button--ghost" href="mailto:hello@minoots.systems">hello@minoots.systems</a>
+            </div>
+          </div>
+          <dl class="capstone__stats" id="capstone-stats"></dl>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>© <span id="footer-year"></span> Minoots Temporal Systems. Precision without pause.</p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,16 @@
+
+:root{
+  --icon-color: currentColor;
+  --icon-size: 1.25rem;
+}
+.icon{ 
+  width: var(--icon-size);
+  height: var(--icon-size);
+  color: var(--icon-color);
+  display: inline-block;
+}
+.icon-lg{ --icon-size: 1.5rem; }
+.icon-xl{ --icon-size: 2rem; }
+.icon-cyan{ color:#00D8D6; }
+.icon-silver{ color:#C0C0C0; }
+.icon-navy{ color:#0A1D3D; }

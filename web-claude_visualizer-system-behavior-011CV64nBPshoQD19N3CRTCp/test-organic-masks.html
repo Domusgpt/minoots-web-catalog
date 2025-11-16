@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organic Mask + Negative Space Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .info-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #0ff;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 300px;
+            z-index: 10000;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        .info-panel h3 {
+            color: #0ff;
+            margin-bottom: 10px;
+        }
+
+        .info-panel ul {
+            margin-left: 15px;
+        }
+
+        .info-panel li {
+            margin: 5px 0;
+            color: #0f0;
+        }
+
+        .canvas-container {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .test-canvas {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+
+            /* ORGANIC MASK SYSTEM */
+            --mask-center-x: 50%;
+            --mask-center-y: 50%;
+            --mask-radius-x: 85%;
+            --mask-radius-y: 80%;
+
+            background: radial-gradient(
+                circle at 50% 50%,
+                rgba(0, 255, 255, 0.3) 0%,
+                rgba(255, 0, 255, 0.2) 50%,
+                rgba(0, 255, 0, 0.1) 100%
+            );
+
+            mask-image: radial-gradient(
+                ellipse var(--mask-radius-x) var(--mask-radius-y)
+                at var(--mask-center-x) var(--mask-center-y),
+                black 0%,
+                black 40%,
+                transparent 100%
+            );
+            -webkit-mask-image: radial-gradient(
+                ellipse var(--mask-radius-x) var(--mask-radius-y)
+                at var(--mask-center-x) var(--mask-center-y),
+                black 0%,
+                black 40%,
+                transparent 100%
+            );
+
+            animation: breathe 8s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+            50% {
+                transform: scale(1.05);
+                opacity: 1;
+            }
+        }
+
+        .content {
+            position: relative;
+            z-index: 10;
+            padding: 100px 50px;
+            min-height: 300vh;
+        }
+
+        .test-card {
+            background: rgba(10, 10, 20, 0.9);
+            border: 2px solid rgba(0, 255, 255, 0.5);
+            border-radius: 20px;
+            padding: 60px 40px;
+            margin: 100px auto;
+            max-width: 600px;
+            cursor: pointer;
+            transition: all 0.5s ease;
+        }
+
+        .test-card:hover {
+            border-color: #0ff;
+            box-shadow: 0 20px 60px rgba(0, 255, 255, 0.4);
+            transform: translateY(-10px) scale(1.02);
+        }
+
+        .test-card h2 {
+            color: #0ff;
+            margin-bottom: 15px;
+        }
+
+        .test-card p {
+            line-height: 1.8;
+            opacity: 0.9;
+        }
+
+        .status {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #0ff;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 11px;
+            font-family: monospace;
+            max-width: 250px;
+            z-index: 10000;
+        }
+
+        .status div {
+            margin: 3px 0;
+        }
+
+        .status .on {
+            color: #0f0;
+        }
+
+        .status .off {
+            color: #f00;
+        }
+    </style>
+</head>
+<body>
+    <div class="info-panel">
+        <h3>✓ Test Checklist:</h3>
+        <ul>
+            <li>Canvas has organic elliptical mask</li>
+            <li>Mask breathes/morphs smoothly</li>
+            <li>No hard square edges visible</li>
+            <li>Scroll to see negative space around cards</li>
+            <li>Cards should create "cutouts" in visualizer</li>
+        </ul>
+    </div>
+
+    <div class="canvas-container">
+        <div class="test-canvas" id="test-canvas"></div>
+    </div>
+
+    <div class="content">
+        <h1 style="text-align: center; margin-bottom: 50px;">Organic Mask + Negative Space Test</h1>
+
+        <div class="test-card">
+            <h2>Test Card 1</h2>
+            <p>As you scroll, the visualizer should carve out space around this card.</p>
+            <p>The mask should be organic with soft, feathered edges - no hard squares!</p>
+        </div>
+
+        <div class="test-card">
+            <h2>Test Card 2</h2>
+            <p>This card should also create a cutout in the visualizer.</p>
+            <p>Notice how the background morphs and breathes organically.</p>
+        </div>
+
+        <div class="test-card">
+            <h2>Test Card 3</h2>
+            <p>Multiple cards create multiple cutouts.</p>
+            <p>The visualizer fills the negative space between cards.</p>
+        </div>
+
+        <div class="test-card">
+            <h2>Test Card 4</h2>
+            <p>Scroll up and down to see the dynamic masking.</p>
+            <p>Cards entering/leaving viewport should smoothly update the mask.</p>
+        </div>
+    </div>
+
+    <div class="status">
+        <div class="on">✓ Organic elliptical mask</div>
+        <div class="on">✓ Breathing animation active</div>
+        <div class="on">✓ Radial gradient feathering</div>
+        <div class="on">✓ No hard edges</div>
+        <div id="negative-space-status" class="off">✗ Negative space (needs JS)</div>
+    </div>
+
+    <script>
+        // Simple demonstration of negative space concept
+        class SimpleNegativeSpace {
+            constructor() {
+                this.canvas = document.getElementById('test-canvas');
+                this.cards = Array.from(document.querySelectorAll('.test-card'));
+                this.updateQueued = false;
+
+                window.addEventListener('scroll', () => {
+                    if (!this.updateQueued) {
+                        this.updateQueued = true;
+                        requestAnimationFrame(() => {
+                            this.update();
+                            this.updateQueued = false;
+                        });
+                    }
+                }, { passive: true });
+
+                this.update();
+            }
+
+            update() {
+                const viewport = {
+                    width: window.innerWidth,
+                    height: window.innerHeight
+                };
+
+                const cutouts = this.cards
+                    .map(card => {
+                        const rect = card.getBoundingClientRect();
+
+                        if (rect.bottom < 0 || rect.top > viewport.height) {
+                            return null;
+                        }
+
+                        const centerX = ((rect.left + rect.width / 2) / viewport.width * 100).toFixed(2);
+                        const centerY = ((rect.top + rect.height / 2) / viewport.height * 100).toFixed(2);
+                        const radiusX = ((rect.width / viewport.width) * 60).toFixed(2);
+                        const radiusY = ((rect.height / viewport.height) * 60).toFixed(2);
+
+                        return `radial-gradient(ellipse ${radiusX}% ${radiusY}% at ${centerX}% ${centerY}%,
+                            transparent 0%,
+                            transparent 40%,
+                            black 80%,
+                            black 100%)`;
+                    })
+                    .filter(c => c !== null);
+
+                if (cutouts.length > 0) {
+                    const masks = [
+                        `radial-gradient(ellipse 85% 80% at 50% 50%,
+                            black 0%,
+                            black 40%,
+                            transparent 100%)`,
+                        ...cutouts
+                    ];
+
+                    this.canvas.style.maskImage = masks.join(', ');
+                    this.canvas.style.webkitMaskImage = masks.join(', ');
+                    this.canvas.style.maskComposite = 'intersect';
+                    this.canvas.style.webkitMaskComposite = 'source-in';
+
+                    document.getElementById('negative-space-status').className = 'on';
+                    document.getElementById('negative-space-status').textContent =
+                        `✓ Negative space (${cutouts.length} cutouts)`;
+                }
+            }
+        }
+
+        const negSpace = new SimpleNegativeSpace();
+        console.log('✓ Organic mask test loaded');
+    </script>
+</body>
+</html>

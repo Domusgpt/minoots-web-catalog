@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Behavior Test</title>
+    <script src="./lib/gsap.min.js"></script>
+    <script src="./lib/ScrollTrigger.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: #0a0a14;
+            color: #fff;
+            padding: 40px;
+            min-height: 100vh;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #0ff;
+        }
+
+        .test-info {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 40px;
+        }
+
+        .test-info h2 {
+            color: #0ff;
+            margin-bottom: 10px;
+        }
+
+        .test-info ul {
+            margin-left: 20px;
+        }
+
+        .test-info li {
+            margin: 5px 0;
+        }
+
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .morph-card {
+            position: relative;
+            padding: 60px 40px;
+            background: rgba(10, 10, 20, 0.85);
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+
+        .morph-card::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 22px;
+            background: linear-gradient(
+                45deg,
+                transparent 0%,
+                rgba(0, 255, 255, 0.3) 25%,
+                rgba(255, 0, 255, 0.3) 50%,
+                rgba(0, 255, 255, 0.3) 75%,
+                transparent 100%
+            );
+            background-size: 200% 200%;
+            animation: shimmer 3s linear infinite;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        .morph-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            border-color: #0ff;
+            box-shadow: 0 20px 60px rgba(0, 255, 255, 0.3);
+        }
+
+        .morph-card:hover::after {
+            opacity: 0.6;
+        }
+
+        .morph-card.active {
+            border-color: #f0f;
+            box-shadow: 0 20px 60px rgba(255, 0, 255, 0.4);
+            transform: translateY(-15px) scale(1.05);
+        }
+
+        .morph-card.active::after {
+            opacity: 1;
+        }
+
+        .morph-card.expanded {
+            position: fixed;
+            inset: 40px;
+            z-index: 1000;
+            overflow-y: auto;
+            max-height: calc(100vh - 80px);
+            padding: 80px 60px;
+        }
+
+        .card-close {
+            display: none;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .card-close::before,
+        .card-close::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 30px;
+            height: 2px;
+            background: #0ff;
+            transition: background 0.3s;
+        }
+
+        .card-close::before {
+            transform: translate(-50%, -50%) rotate(45deg);
+        }
+
+        .card-close::after {
+            transform: translate(-50%, -50%) rotate(-45deg);
+        }
+
+        .card-close:hover::before,
+        .card-close:hover::after {
+            background: #f0f;
+        }
+
+        .morph-card.expanded .card-close {
+            display: flex;
+        }
+
+        .expanded-content {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .expanded-content h3 {
+            color: #0ff;
+            margin: 20px 0 10px;
+        }
+
+        .expanded-content p {
+            line-height: 1.8;
+            opacity: 0.9;
+        }
+
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 999;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 255, 255, 0.2);
+            border: 1px solid #0ff;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        .status div {
+            margin: 3px 0;
+        }
+
+        .status .success {
+            color: #0f0;
+        }
+
+        .status .info {
+            color: #0ff;
+        }
+    </style>
+</head>
+<body>
+    <h1>Card Behavior Test</h1>
+
+    <div class="test-info">
+        <h2>Test Checklist:</h2>
+        <ul>
+            <li>✓ Hover over cards - should see 3D tilt effect and cyan border glow</li>
+            <li>✓ Click a card - should activate (magenta border, scale up)</li>
+            <li>✓ Double-click a card - should expand to full screen</li>
+            <li>✓ Click X or overlay to close expanded card</li>
+            <li>✓ Press ESC to close expanded card</li>
+            <li>✓ All animations should be smooth with no jumps</li>
+        </ul>
+    </div>
+
+    <div class="cards-container">
+        <div class="morph-card" data-expandable>
+            <div class="card-close"></div>
+            <h2>Test Card 1</h2>
+            <p>Hover, click, and double-click to test behaviors.</p>
+            <div class="expanded-content">
+                <h3>Expanded Content</h3>
+                <p>This content appears when the card is expanded. You should be able to scroll if needed.</p>
+                <h3>Feature 1</h3>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                <h3>Feature 2</h3>
+                <p>Pellentesque habitant morbi tristique senectus et netus.</p>
+                <h3>Feature 3</h3>
+                <p>Donec eu est non lacus lacinia semper. Mauris vitae ultricies mauris.</p>
+            </div>
+        </div>
+
+        <div class="morph-card" data-expandable>
+            <div class="card-close"></div>
+            <h2>Test Card 2</h2>
+            <p>Test the same behaviors on this card.</p>
+            <div class="expanded-content">
+                <h3>Expanded Content</h3>
+                <p>Different content for card 2.</p>
+                <h3>Detail A</h3>
+                <p>Vestibulum ante ipsum primis in faucibus orci luctus.</p>
+                <h3>Detail B</h3>
+                <p>Integer posuere erat a ante venenatis dapibus posuere velit aliquet.</p>
+            </div>
+        </div>
+
+        <div class="morph-card" data-expandable>
+            <div class="card-close"></div>
+            <h2>Test Card 3</h2>
+            <p>And test on this one too.</p>
+            <div class="expanded-content">
+                <h3>Expanded Content</h3>
+                <p>Third card's expanded view.</p>
+                <h3>Section X</h3>
+                <p>Cras mattis consectetur purus sit amet fermentum.</p>
+                <h3>Section Y</h3>
+                <p>Aenean lacinia bibendum nulla sed consectetur.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <div class="status" id="status">
+        <div class="info">GSAP: <span id="gsap-status">Loading...</span></div>
+        <div class="info">ScrollTrigger: <span id="st-status">Loading...</span></div>
+        <div class="success">Status: Ready for testing</div>
+    </div>
+
+    <script>
+        // Check GSAP loaded
+        document.getElementById('gsap-status').textContent = typeof gsap !== 'undefined' ? '✓ Loaded' : '✗ Failed';
+        document.getElementById('st-status').textContent = typeof ScrollTrigger !== 'undefined' ? '✓ Loaded' : '✗ Failed';
+
+        const overlay = document.getElementById('overlay');
+
+        // Card click behavior
+        document.querySelectorAll('.morph-card').forEach(card => {
+            let clickTimeout = null;
+            let clickCount = 0;
+
+            card.addEventListener('click', function(e) {
+                if (this.classList.contains('expanded')) return;
+
+                clickCount++;
+
+                if (clickCount === 1) {
+                    clickTimeout = setTimeout(() => {
+                        // Single click - toggle active
+                        this.classList.toggle('active');
+                        document.querySelectorAll('.morph-card').forEach(other => {
+                            if (other !== this && !other.classList.contains('expanded')) {
+                                other.classList.remove('active');
+                            }
+                        });
+                        clickCount = 0;
+                    }, 300);
+                } else if (clickCount === 2) {
+                    // Double click - expand
+                    clearTimeout(clickTimeout);
+                    if (this.dataset.expandable !== undefined) {
+                        expandCard(this);
+                    }
+                    clickCount = 0;
+                }
+            });
+
+            // 3D tilt effect on hover
+            card.addEventListener('mousemove', (e) => {
+                if (card.classList.contains('expanded')) return;
+
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+
+                const rotateX = (y - centerY) / centerY * -10;
+                const rotateY = (x - centerX) / centerX * 10;
+
+                gsap.to(card, {
+                    rotateX: rotateX,
+                    rotateY: rotateY,
+                    transformPerspective: 1000,
+                    duration: 0.3,
+                    ease: 'power2.out'
+                });
+            });
+
+            card.addEventListener('mouseleave', () => {
+                if (!card.classList.contains('expanded')) {
+                    gsap.to(card, {
+                        rotateX: 0,
+                        rotateY: 0,
+                        duration: 0.5,
+                        ease: 'power2.out'
+                    });
+                }
+            });
+        });
+
+        // Expand card function
+        function expandCard(card) {
+            overlay.classList.add('active');
+
+            gsap.to(card, {
+                duration: 0.6,
+                ease: 'power3.inOut',
+                onStart: () => {
+                    card.classList.add('expanded');
+                    const expandedContent = card.querySelector('.expanded-content');
+                    if (expandedContent) {
+                        expandedContent.style.display = 'block';
+                        gsap.fromTo(expandedContent,
+                            { opacity: 0, y: 30 },
+                            { opacity: 1, y: 0, duration: 0.6, delay: 0.3 }
+                        );
+                    }
+                }
+            });
+        }
+
+        // Collapse card function
+        function collapseCard(card) {
+            const expandedContent = card.querySelector('.expanded-content');
+
+            if (expandedContent) {
+                gsap.to(expandedContent, {
+                    opacity: 0,
+                    y: -30,
+                    duration: 0.3,
+                    onComplete: () => {
+                        expandedContent.style.display = 'none';
+                    }
+                });
+            }
+
+            overlay.classList.remove('active');
+
+            gsap.to(card, {
+                duration: 0.6,
+                ease: 'power3.inOut',
+                onComplete: () => {
+                    card.classList.remove('expanded');
+                    card.classList.remove('active');
+                }
+            });
+        }
+
+        // Close button behavior
+        document.querySelectorAll('.card-close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const card = closeBtn.closest('.morph-card');
+                collapseCard(card);
+            });
+        });
+
+        // Close on overlay click
+        overlay.addEventListener('click', () => {
+            const expandedCard = document.querySelector('.morph-card.expanded');
+            if (expandedCard) {
+                collapseCard(expandedCard);
+            }
+        });
+
+        // Close on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const expandedCard = document.querySelector('.morph-card.expanded');
+                if (expandedCard) {
+                    collapseCard(expandedCard);
+                }
+            }
+        });
+
+        console.log('✓ Card test page loaded successfully');
+        console.log('✓ GSAP:', typeof gsap);
+        console.log('✓ ScrollTrigger:', typeof ScrollTrigger);
+    </script>
+</body>
+</html>

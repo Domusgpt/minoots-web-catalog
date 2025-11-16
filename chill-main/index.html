@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MINOOTS - Distributed Horology Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0D1117;
+            --bg-surface: #161B22;
+            --primary: #58A6B8;
+            --primary-soft: rgba(88, 166, 184, 0.15);
+            --accent: #E8957E;
+            --accent-soft: rgba(232, 149, 126, 0.12);
+            --highlight: #9ECFB5;
+            --highlight-soft: rgba(158, 207, 181, 0.1);
+            --copper: #B87333;
+            --text: #E6EDF3;
+            --text-muted: #8B949E;
+            --glow: rgba(88, 166, 184, 0.4);
+            --font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-mono);
+            background: var(--bg-deep);
+            color: var(--text);
+            overflow-x: hidden;
+            line-height: 1.7;
+        }
+
+        /* Dual Coordinated Visualizer System */
+        .visualizer-container {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .viz-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transition: opacity 1.5s ease, transform 1.5s ease, filter 1.5s ease;
+        }
+
+        #viz-primary {
+            z-index: 1;
+            opacity: 0.15;
+            animation: breathe 8s ease-in-out infinite;
+        }
+
+        #viz-secondary {
+            z-index: 2;
+            opacity: 0.08;
+            mix-blend-mode: screen;
+            animation: breathe 10s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% {
+                opacity: inherit;
+            }
+            50% {
+                opacity: calc(var(--breathe-opacity, 0.15) * 1.3);
+            }
+        }
+
+        /* Visualizer states for coordination */
+        .viz-layer.dominant {
+            opacity: 0.22;
+            transform: scale(1.05);
+            animation: none; /* Pause breathe animation when active */
+        }
+
+        .viz-layer.recessed {
+            opacity: 0.05;
+            transform: scale(0.95);
+            filter: blur(2px);
+            animation: none; /* Pause breathe animation when recessed */
+        }
+
+        /* Header */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 2rem 3rem;
+            z-index: 1000;
+            background: linear-gradient(to bottom, rgba(13, 17, 23, 0.95), transparent);
+            backdrop-filter: blur(12px);
+            transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1),
+                        background 0.4s ease;
+        }
+
+        header.scrolled {
+            background: rgba(13, 17, 23, 0.98);
+            backdrop-filter: blur(16px);
+            padding: 1.5rem 3rem;
+        }
+
+        header.hidden {
+            transform: translateY(-100%);
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary);
+            letter-spacing: 0.15em;
+            opacity: 0;
+            animation: fadeInUp 1s ease 0.2s forwards;
+            cursor: pointer;
+            transition: color 0.4s ease;
+        }
+
+        .logo:hover {
+            color: var(--highlight);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2.5rem;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 400;
+            font-size: 0.9rem;
+            letter-spacing: 0.05em;
+            transition: all 0.4s ease;
+            opacity: 0;
+            animation: fadeInUp 1s ease forwards;
+            position: relative;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background: var(--primary);
+            transition: width 0.4s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .nav-links a:nth-child(1) { animation-delay: 0.3s; }
+        .nav-links a:nth-child(2) { animation-delay: 0.4s; }
+        .nav-links a:nth-child(3) { animation-delay: 0.5s; }
+        .nav-links a:nth-child(4) { animation-delay: 0.6s; }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .nav-links a:focus {
+            outline: 2px solid var(--primary);
+            outline-offset: 4px;
+            color: var(--primary);
+        }
+
+        .logo:focus {
+            outline: 2px solid var(--primary);
+            outline-offset: 4px;
+        }
+
+        /* Hero */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        .hero-content {
+            text-align: center;
+            opacity: 0;
+            animation: fadeInScale 1.5s ease 0.8s forwards;
+        }
+
+        .title {
+            font-size: clamp(4rem, 13vw, 10rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--highlight) 50%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            background-size: 200% 200%;
+            animation: gradientShift 8s ease infinite;
+            letter-spacing: 0.02em;
+            margin-bottom: 1.5rem;
+            filter: drop-shadow(0 0 40px var(--glow));
+        }
+
+        .subtitle {
+            font-size: clamp(1rem, 2vw, 1.4rem);
+            color: var(--text-muted);
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            font-weight: 300;
+        }
+
+        /* Intelligent Card System */
+        .card-section {
+            min-height: 180vh;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20vh 2rem;
+            z-index: 10;
+        }
+
+        .morph-card {
+            position: sticky;
+            top: 20vh;
+            width: 420px;
+            height: 420px;
+            background: linear-gradient(135deg, var(--primary-soft), var(--highlight-soft));
+            border: 1.5px solid rgba(88, 166, 184, 0.25);
+            border-radius: 50%;
+            padding: 3.5rem;
+            backdrop-filter: blur(16px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            transition: all 1.4s cubic-bezier(0.23, 1, 0.32, 1);
+            box-shadow: 0 0 80px var(--glow);
+            transform-origin: center center;
+            perspective: 1000px;
+        }
+
+        .morph-card.expanded {
+            width: min(92vw, 1300px);
+            height: auto;
+            min-height: 85vh;
+            border-radius: 40px;
+            padding: 6rem 5rem;
+            border-color: rgba(158, 207, 181, 0.4);
+            box-shadow: 0 0 150px rgba(158, 207, 181, 0.4);
+            align-items: flex-start;
+            text-align: left;
+        }
+
+        .morph-card.to-background {
+            width: 100vw;
+            height: 120vh;
+            border-radius: 0;
+            border: none;
+            top: 0;
+            padding: 10rem 8rem;
+            background: linear-gradient(135deg, rgba(88, 166, 184, 0.06), rgba(158, 207, 181, 0.03));
+            backdrop-filter: blur(20px);
+        }
+
+        .card-content-wrapper {
+            width: 100%;
+            transition: all 1.2s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .morph-card.expanded .card-content-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 4rem;
+            align-items: start;
+        }
+
+        .card-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            transition: all 1s ease;
+        }
+
+        .morph-card.expanded .card-header {
+            align-items: flex-start;
+        }
+
+        .card-icon {
+            width: 90px;
+            height: 90px;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            filter: drop-shadow(0 0 20px var(--glow));
+            transition: all 1s ease;
+        }
+
+        .morph-card.expanded .card-icon {
+            width: 120px;
+            height: 120px;
+            color: var(--highlight);
+        }
+
+        .card-title {
+            font-size: clamp(2rem, 4.5vw, 3.5rem);
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.02em;
+            transition: all 1s ease;
+        }
+
+        .morph-card.expanded .card-title {
+            font-size: clamp(2.8rem, 5.5vw, 5rem);
+            background: linear-gradient(135deg, var(--primary), var(--highlight), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+        }
+
+        .card-description {
+            font-size: clamp(1rem, 1.6vw, 1.2rem);
+            line-height: 1.9;
+            color: var(--text-muted);
+            transition: all 1s ease;
+        }
+
+        .morph-card.expanded .card-description {
+            font-size: clamp(1.1rem, 1.8vw, 1.35rem);
+            color: var(--text);
+        }
+
+        .card-details {
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: opacity 1.2s ease 0.4s, max-height 1.2s ease;
+        }
+
+        .morph-card.expanded .card-details {
+            opacity: 1;
+            max-height: 1200px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .feature-item {
+            background: linear-gradient(135deg, rgba(88, 166, 184, 0.08), rgba(158, 207, 181, 0.05));
+            border: 1px solid rgba(88, 166, 184, 0.15);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(88, 166, 184, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .feature-item:hover::before {
+            left: 100%;
+        }
+
+        .feature-item:hover {
+            background: linear-gradient(135deg, rgba(88, 166, 184, 0.12), rgba(158, 207, 181, 0.08));
+            border-color: var(--primary);
+            transform: translateY(-6px);
+            box-shadow: 0 12px 40px rgba(88, 166, 184, 0.2);
+        }
+
+        .feature-title {
+            font-size: 1.25rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .feature-icon-small {
+            font-size: 1.5rem;
+            color: var(--highlight);
+        }
+
+        .feature-desc {
+            font-size: 1rem;
+            color: var(--text-muted);
+            line-height: 1.7;
+        }
+
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .tech-badge {
+            padding: 0.5rem 1.25rem;
+            background: rgba(88, 166, 184, 0.1);
+            border: 1px solid rgba(88, 166, 184, 0.3);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: var(--primary);
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .tech-badge:hover {
+            background: rgba(88, 166, 184, 0.2);
+            border-color: var(--primary);
+            transform: scale(1.05);
+        }
+
+        /* Content Sections */
+        .content-section {
+            min-height: 100vh;
+            padding: 10rem 3rem;
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 5rem;
+            max-width: 800px;
+        }
+
+        .section-title {
+            font-size: clamp(3rem, 7vw, 5rem);
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--accent), var(--highlight));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        .section-title.visible {
+            opacity: 1;
+        }
+
+        .section-subtitle {
+            font-size: clamp(1.1rem, 2vw, 1.4rem);
+            color: var(--text-muted);
+            line-height: 1.8;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 3rem;
+            max-width: 1600px;
+            width: 100%;
+        }
+
+        .info-card {
+            background: linear-gradient(135deg, var(--primary-soft), var(--accent-soft));
+            border: 1px solid rgba(88, 166, 184, 0.2);
+            border-radius: 24px;
+            padding: 3rem;
+            backdrop-filter: blur(12px);
+            transition: all 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+            opacity: 0;
+            transform: translateY(40px) scale(0.95);
+        }
+
+        .info-card.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        .info-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            border-color: var(--highlight);
+            box-shadow: 0 25px 80px rgba(158, 207, 181, 0.25);
+        }
+
+        .info-card h3 {
+            font-size: 1.6rem;
+            color: var(--primary);
+            margin-bottom: 1.25rem;
+            font-weight: 600;
+        }
+
+        .info-card p {
+            color: var(--text-muted);
+            line-height: 1.8;
+            font-size: 1.05rem;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes gradientShift {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .morph-card.expanded .card-content-wrapper {
+                grid-template-columns: 1fr;
+                gap: 3rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                padding: 1.5rem;
+            }
+
+            header.scrolled {
+                padding: 1rem 1.5rem;
+            }
+
+            .nav-links {
+                gap: 1.5rem;
+            }
+
+            .nav-links a {
+                font-size: 0.8rem;
+            }
+
+            .morph-card {
+                width: 340px;
+                height: 340px;
+                padding: 2.5rem;
+            }
+
+            .morph-card.expanded {
+                padding: 3rem 2rem;
+            }
+
+            .card-section {
+                padding: 15vh 1rem;
+            }
+
+            .content-section {
+                padding: 6rem 1.5rem;
+            }
+
+            .card-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+
+            /* Reduce card tilt on mobile */
+            .morph-card {
+                transform: none !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .title {
+                font-size: clamp(2.8rem, 12vw, 6rem);
+            }
+
+            .morph-card {
+                width: 300px;
+                height: 300px;
+                padding: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Dual Coordinated Visualizer System -->
+    <div class="visualizer-container">
+        <canvas id="viz-primary" class="viz-layer"></canvas>
+        <canvas id="viz-secondary" class="viz-layer"></canvas>
+    </div>
+
+    <header>
+        <nav>
+            <div class="logo">MINOOTS</div>
+            <div class="nav-links">
+                <a href="#precision">Precision</a>
+                <a href="#consensus">Consensus</a>
+                <a href="#execution">Execution</a>
+                <a href="#architecture">Architecture</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Hero -->
+        <section class="hero">
+            <div class="hero-content">
+                <h1 class="title">MINOOTS</h1>
+                <p class="subtitle">Precision-Scheduled Distributed Task Orchestration</p>
+            </div>
+        </section>
+
+        <!-- Card 1: Precision Timing -->
+        <section class="card-section" id="precision">
+            <div class="morph-card" data-card="precision" data-viz-primary="0.52" data-viz-secondary="0.58">
+                <div class="card-content-wrapper">
+                    <div class="card-header">
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="12" cy="12" r="9"/>
+                            <path d="M12 7v5l3 1.5"/>
+                            <path d="M12 3v2M12 19v2M3 12h2M19 12h2"/>
+                            <path d="M5.5 5.5l1.4 1.4M17.1 17.1l1.4 1.4M18.5 5.5l-1.4 1.4M6.9 17.1l-1.4 1.4"/>
+                        </svg>
+                        <div>
+                            <h2 class="card-title">Precision Timing</h2>
+                            <p class="card-description">
+                                Microsecond-accurate distributed scheduling engine built for mission-critical workloads. Execute tasks across your infrastructure with absolute temporal reliability—no drift, no jitter, no surprises.
+                            </p>
+                            <div class="tech-stack">
+                                <span class="tech-badge">Cron Syntax</span>
+                                <span class="tech-badge">NTP Sync</span>
+                                <span class="tech-badge">Microsecond Precision</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-details">
+                        <div class="feature-grid">
+                            <div class="feature-item">
+                                <div class="feature-title">
+                                    <span class="feature-icon-small">⏰</span>
+                                    Cron Compatible
+                                </div>
+                                <div class="feature-desc">Full support for standard cron expressions with extended syntax for complex scheduling patterns. Drop-in replacement for existing cron jobs—migrate in minutes, not days.</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-title">
+                                    <span class="feature-icon-small">🔄</span>
+                                    Interval Timers
+                                </div>
+                                <div class="feature-desc">Recurring execution at precise intervals with millisecond accuracy. Perfect for regular maintenance tasks and periodic checks.</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-title">
+                                    <span class="feature-icon-small">⚡</span>
+                                    Delayed Execution
+                                </div>
+                                <div class="feature-desc">One-time delayed tasks with microsecond precision. Ideal for time-sensitive operations and scheduled events.</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-title">
+                                    <span class="feature-icon-small">🌐</span>
+                                    NTP Synchronization
+                                </div>
+                                <div class="feature-desc">Distributed clock synchronization via NTP ensures consistency across your entire cluster. Sub-millisecond jitter compensation.</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-title">
+                                    <span class="feature-icon-small">🌍</span>
+                                    Timezone Aware
+                                </div>
+                                <div class="feature-desc">Full timezone support with DST handling. Schedule tasks in any timezone with automatic daylight saving adjustments.</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-title">
+                                    <span class="feature-icon-small">📊</span>
+                                    Execution Guarantees
+                                </div>
+                                <div class="feature-desc">At-least-once execution semantics with idempotency support. Your tasks will execute, exactly when they should.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Card 2: Raft Consensus -->
+        <section class="card-section" id="consensus">
+            <div class="morph-card" data-card="consensus" data-viz-primary="0.58" data-viz-secondary="0.48">
+                <div class="card-content-wrapper">
+                    <div class="card-header">
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="3" y="6" width="4" height="12" rx="1"/>
+                            <rect x="10" y="6" width="4" height="12" rx="1"/>
+                            <rect x="17" y="6" width="4" height="12" rx="1"/>
+                            <path d="M5 4v2M12 4v2M19 4v2"/>
+                            <path d="M5 12h2M12 12h2M19 12h2"/>
+                        </svg>
+                        <div>
+                            <h2 class="card-title">Raft Consensus</h2>
+                            <p class="card-description">
+                                Battle-tested Raft consensus algorithm ensures strong consistency across all nodes. Automatic leader election, instant failover, and fault tolerance deliver unmatched reliability—even during network chaos.
+                            </p>
+                            <div class="tech-stack">
+                                <span class="tech-badge">Strong Consistency</span>
+                                <span class="tech-badge">Auto Failover</span>
+                                <span class="tech-badge">Quorum Based</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-details">
+                        <div class="feature-grid">
+                            <div class="feature-item">
+                                <div class="feature-title">
+                                    <span class="feature-icon-small">🔄</span>
+                                    Automatic Failover
+                                </div>
+                                <div class="feature-desc">Leader re-election in under 5 seconds. When a leader fails, the cluster automatically elects a new one and resumes operations—zero human intervention required.</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-title">
+                                    <span class="feature-icon-small">🔒</span>
+                                    Strong Consistency
+                                </div>
+                                <div class="feature-desc">Linearizable reads and writes guarantee that all nodes see the same state. No eventual consistency surprises.</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-title">
+                                    <span class="feature-icon-small">🛡️</span>
+                                    Split-Brain Protection
+                                </div>
+                                <div class="feature-desc">Quorum-based decision making prevents split-brain scenarios. Cluster always maintains a single source of truth.</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-title">
+                                    <span class="feature-icon-small">📝</span>
+                                    Log Replication
+                                </div>
+                                <div class="feature-desc">Durable state machine replication ensures your data is safe. Replicated logs provide complete audit trail.</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-title">
+                                    <span class="feature-icon-small">⚖️</span>
+                                    Membership Changes
+                                </div>
+                                <div class="feature-desc">Add or remove nodes without downtime. Cluster reconfiguration happens transparently while maintaining consistency.</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-title">
+                                    <span class="feature-icon-small">📡</span>
+                                    Heartbeat Monitoring
+                                </div>
+                                <div class="feature-desc">Continuous health checks detect failures quickly. Configurable timeouts adapt to your network conditions.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Card 3: Execution & Delivery -->
+        <section class="card-section" id="execution">
+            <div class="morph-card" data-card="execution" data-viz-primary="0.45" data-viz-secondary="0.52">
+                <div class="card-content-wrapper">
+                    <div class="card-header">
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M6 6c0-2 3-2 3 0 0 1-1 2-2 2h-1"/>
+                            <path d="M18 18c0 2-3 2-3 0 0-1 1-2 2-2h1"/>
+                            <path d="M10 14c0-1.657 1.343-3 3-3h3"/>
+                            <circle cx="19" cy="11" r="2"/>
+                        </svg>
+                        <div>
+                            <h2 class="card-title">Execution & Delivery</h2>
+                            <p class="card-description">
+                                HTTP webhooks with intelligent exponential backoff, dead-letter queuing, and cryptographic verification. Never lose a task execution—comprehensive failure handling ensures every job reaches its destination.
+                            </p>
+                            <div class="tech-stack">
+                                <span class="tech-badge">Webhooks</span>
+                                <span class="tech-badge">DLQ</span>
+                                <span class="tech-badge">HMAC Auth</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-details">
+                        <div class="feature-grid">
+                            <div class="feature-item">
+                                <div class="feature-title">
+                                    <span class="feature-icon-small">🔄</span>
+                                    Exponential Backoff
+                                </div>
+                                <div class="feature-desc">Smart retry strategies with configurable jitter prevent thundering herd problems. Gradually increasing delays give overloaded services breathing room to recover gracefully.</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-title">
+                                    <span class="feature-icon-small">💀</span>
+                                    Dead Letter Queue
+                                </div>
+                                <div class="feature-desc">Failed tasks move to DLQ for manual inspection. Persistent failure handling means you never lose track of important executions.</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-title">
+                                    <span class="feature-icon-small">🔐</span>
+                                    HMAC Signatures
+                                </div>
+                                <div class="feature-desc">Webhook authentication via HMAC-SHA256 signatures. Validate requests came from MINOOTS, not malicious actors.</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-title">
+                                    <span class="feature-icon-small">⚙️</span>
+                                    Custom Policies
+                                </div>
+                                <div class="feature-desc">Configure retry policies per endpoint. Different services get different retry strategies based on their SLAs.</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-title">
+                                    <span class="feature-icon-small">📊</span>
+                                    Delivery Metrics
+                                </div>
+                                <div class="feature-desc">Track success rates, latencies, and failure modes. Comprehensive metrics help you optimize webhook performance.</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-title">
+                                    <span class="feature-icon-small">🔔</span>
+                                    Alerting Integration
+                                </div>
+                                <div class="feature-desc">PagerDuty, Slack, and custom webhook alerts. Get notified when things go wrong, before your users do.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Architecture Section -->
+        <section class="content-section" id="architecture">
+            <div class="section-header">
+                <h2 class="section-title">Built for Scale</h2>
+                <p class="section-subtitle">
+                    Production-hardened architecture engineered for reliability, performance, and operational simplicity.
+                    From weekend projects to Fortune 500 infrastructure—MINOOTS scales effortlessly with your ambitions.
+                </p>
+            </div>
+            <div class="card-grid">
+                <div class="info-card">
+                    <h3>Horizontal Scaling</h3>
+                    <p>Add nodes dynamically to handle increased load. Consistent hashing ensures automatic work distribution across the cluster. Scale from single node to hundreds seamlessly.</p>
+                </div>
+                <div class="info-card">
+                    <h3>PostgreSQL Storage</h3>
+                    <p>Leverages PostgreSQL's ACID properties for durable timer storage. Efficient B-tree indexing, partition pruning, and streaming replication ensure performance at scale.</p>
+                </div>
+                <div class="info-card">
+                    <h3>Zero Downtime Updates</h3>
+                    <p>Rolling updates without dropping scheduled tasks. Graceful shutdown with task handoff to peer nodes. Deploy new versions without affecting running timers.</p>
+                </div>
+                <div class="info-card">
+                    <h3>Prometheus Metrics</h3>
+                    <p>Built-in Prometheus metrics and health check endpoints. Track execution rates, latencies, cluster health, and resource utilization in real-time.</p>
+                </div>
+                <div class="info-card">
+                    <h3>Multi-Language SDKs</h3>
+                    <p>Official SDKs for Go, Python, Node.js, and Rust. Simple, idiomatic APIs make integration straightforward. gRPC and REST APIs for other languages.</p>
+                </div>
+                <div class="info-card">
+                    <h3>Network Resilience</h3>
+                    <p>Resilient to network partitions and splits. Raft consensus maintains consistency even during major network disruptions. Automatic partition recovery when connectivity restores.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script type="module">
+        // ========== DUAL COORDINATED VISUALIZER SYSTEM ==========
+        class CoordinatedVisualizer {
+            constructor(canvasId, isPrimary) {
+                this.canvas = document.getElementById(canvasId);
+                this.isPrimary = isPrimary;
+                this.gl = this.canvas.getContext('webgl2') || this.canvas.getContext('webgl');
+                if (!this.gl) return;
+
+                this.startTime = Date.now();
+                this.params = {
+                    gridDensity: isPrimary ? 45 : 30,
+                    chaos: isPrimary ? 0.18 : 0.10,
+                    speed: isPrimary ? 0.45 : 0.30,
+                    hue: isPrimary ? 0.52 : 0.45,
+                    intensity: isPrimary ? 0.22 : 0.14,
+                    saturation: 0.7,
+                    rot4dXW: 0.0,
+                    rot4dYW: 0.0,
+                    morphFactor: isPrimary ? 1.3 : 0.8
+                };
+
+                this.targetParams = { ...this.params };
+                this.init();
+            }
+
+            init() {
+                this.initShaders();
+                this.initBuffers();
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+            }
+
+            initShaders() {
+                const vertexShader = `
+                    attribute vec2 a_position;
+                    void main() {
+                        gl_Position = vec4(a_position, 0.0, 1.0);
+                    }
+                `;
+
+                const fragmentShader = `
+                    precision highp float;
+                    uniform vec2 u_resolution;
+                    uniform float u_time;
+                    uniform float u_gridDensity;
+                    uniform float u_chaos;
+                    uniform float u_speed;
+                    uniform float u_hue;
+                    uniform float u_intensity;
+                    uniform float u_saturation;
+                    uniform float u_rot4dXW;
+                    uniform float u_rot4dYW;
+                    uniform float u_morphFactor;
+
+                    mat4 rotateXW(float theta) {
+                        float c = cos(theta);
+                        float s = sin(theta);
+                        return mat4(c, 0.0, 0.0, -s, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, s, 0.0, 0.0, c);
+                    }
+
+                    mat4 rotateYW(float theta) {
+                        float c = cos(theta);
+                        float s = sin(theta);
+                        return mat4(1.0, 0.0, 0.0, 0.0, 0.0, c, 0.0, -s, 0.0, 0.0, 1.0, 0.0, 0.0, s, 0.0, c);
+                    }
+
+                    vec3 hsv2rgb(vec3 c) {
+                        vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+                    }
+
+                    vec3 project4Dto3D(vec4 p) {
+                        float w = 2.5 / (2.5 + p.w);
+                        return vec3(p.x * w, p.y * w, p.z * w);
+                    }
+
+                    float sphereLattice(vec3 p, float gridSize) {
+                        vec3 cell = fract(p * gridSize) - 0.5;
+                        return 1.0 - smoothstep(0.15, 0.25, length(cell));
+                    }
+
+                    void main() {
+                        vec2 uv = (gl_FragCoord.xy - u_resolution.xy * 0.5) / min(u_resolution.x, u_resolution.y);
+                        float timeSpeed = u_time * 0.0001 * u_speed;
+                        vec4 pos = vec4(uv * 3.0, sin(timeSpeed * 2.5) * u_morphFactor, cos(timeSpeed * 2.0) * u_morphFactor);
+                        pos = rotateXW(u_rot4dXW + timeSpeed * 0.4) * pos;
+                        pos = rotateYW(u_rot4dYW + timeSpeed * 0.3) * pos;
+                        vec3 p3d = project4Dto3D(pos);
+                        float value = sphereLattice(p3d, u_gridDensity * 0.08);
+                        float noise = sin(pos.x * 6.0) * cos(pos.y * 8.0);
+                        value += noise * u_chaos;
+                        float finalIntensity = pow(1.0 - clamp(abs(value), 0.0, 1.0), 2.0) * u_intensity;
+                        vec3 color = hsv2rgb(vec3(u_hue + timeSpeed * 0.02, u_saturation, 0.92));
+                        gl_FragColor = vec4(color * finalIntensity, finalIntensity * 0.55);
+                    }
+                `;
+
+                this.program = this.createProgram(vertexShader, fragmentShader);
+                this.uniforms = {
+                    resolution: this.gl.getUniformLocation(this.program, 'u_resolution'),
+                    time: this.gl.getUniformLocation(this.program, 'u_time'),
+                    gridDensity: this.gl.getUniformLocation(this.program, 'u_gridDensity'),
+                    chaos: this.gl.getUniformLocation(this.program, 'u_chaos'),
+                    speed: this.gl.getUniformLocation(this.program, 'u_speed'),
+                    hue: this.gl.getUniformLocation(this.program, 'u_hue'),
+                    intensity: this.gl.getUniformLocation(this.program, 'u_intensity'),
+                    saturation: this.gl.getUniformLocation(this.program, 'u_saturation'),
+                    rot4dXW: this.gl.getUniformLocation(this.program, 'u_rot4dXW'),
+                    rot4dYW: this.gl.getUniformLocation(this.program, 'u_rot4dYW'),
+                    morphFactor: this.gl.getUniformLocation(this.program, 'u_morphFactor')
+                };
+            }
+
+            createProgram(vertexSource, fragmentSource) {
+                const vertexShader = this.createShader(this.gl.VERTEX_SHADER, vertexSource);
+                const fragmentShader = this.createShader(this.gl.FRAGMENT_SHADER, fragmentSource);
+                const program = this.gl.createProgram();
+                this.gl.attachShader(program, vertexShader);
+                this.gl.attachShader(program, fragmentShader);
+                this.gl.linkProgram(program);
+                return program;
+            }
+
+            createShader(type, source) {
+                const shader = this.gl.createShader(type);
+                this.gl.shaderSource(shader, source);
+                this.gl.compileShader(shader);
+                return shader;
+            }
+
+            initBuffers() {
+                const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+                this.buffer = this.gl.createBuffer();
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffer);
+                this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
+                const positionLocation = this.gl.getAttribLocation(this.program, 'a_position');
+                this.gl.enableVertexAttribArray(positionLocation);
+                this.gl.vertexAttribPointer(positionLocation, 2, this.gl.FLOAT, false, 0, 0);
+            }
+
+            resize() {
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                this.canvas.width = this.canvas.clientWidth * dpr;
+                this.canvas.height = this.canvas.clientHeight * dpr;
+                this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            updateParameters(params) {
+                Object.assign(this.targetParams, params);
+            }
+
+            lerpParams() {
+                const lerpFactor = 0.03;
+                for (let key in this.targetParams) {
+                    this.params[key] += (this.targetParams[key] - this.params[key]) * lerpFactor;
+                }
+            }
+
+            render() {
+                if (!this.program) return;
+
+                this.lerpParams();
+
+                this.gl.useProgram(this.program);
+                this.gl.clearColor(0, 0, 0, 0);
+                this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+
+                const time = Date.now() - this.startTime;
+                this.gl.uniform2f(this.uniforms.resolution, this.canvas.width, this.canvas.height);
+                this.gl.uniform1f(this.uniforms.time, time);
+                this.gl.uniform1f(this.uniforms.gridDensity, this.params.gridDensity);
+                this.gl.uniform1f(this.uniforms.chaos, this.params.chaos);
+                this.gl.uniform1f(this.uniforms.speed, this.params.speed);
+                this.gl.uniform1f(this.uniforms.hue, this.params.hue);
+                this.gl.uniform1f(this.uniforms.intensity, this.params.intensity);
+                this.gl.uniform1f(this.uniforms.saturation, this.params.saturation);
+                this.gl.uniform1f(this.uniforms.rot4dXW, this.params.rot4dXW);
+                this.gl.uniform1f(this.uniforms.rot4dYW, this.params.rot4dYW);
+                this.gl.uniform1f(this.uniforms.morphFactor, this.params.morphFactor);
+
+                this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+            }
+        }
+
+        // ========== CARD MORPHING WITH VISUALIZER COORDINATION ==========
+        class IntelligentCardSystem {
+            constructor(visualizers) {
+                this.visualizers = visualizers;
+                this.cards = document.querySelectorAll('.morph-card');
+                this.init();
+            }
+
+            init() {
+                this.setupScrollObserver();
+                this.setupMouseTracking();
+            }
+
+            setupScrollObserver() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        const card = entry.target;
+                        if (entry.isIntersecting && entry.intersectionRatio > 0.4) {
+                            card.classList.add('expanded');
+                            this.coordinateVisualizers(card, true);
+                        } else {
+                            card.classList.remove('expanded');
+                            if (entry.intersectionRatio < 0.2) {
+                                this.coordinateVisualizers(card, false);
+                            }
+                        }
+                    });
+                }, {
+                    threshold: [0, 0.2, 0.4, 0.6, 0.8, 1.0]
+                });
+
+                this.cards.forEach(card => observer.observe(card));
+            }
+
+            coordinateVisualizers(card, isExpanded) {
+                const primaryHue = parseFloat(card.dataset.vizPrimary);
+                const secondaryHue = parseFloat(card.dataset.vizSecondary);
+
+                if (isExpanded) {
+                    // Primary visualizer becomes dominant
+                    this.visualizers.primary.updateParameters({
+                        hue: primaryHue,
+                        intensity: 0.26,
+                        gridDensity: 58,
+                        speed: 0.55,
+                        morphFactor: 1.6
+                    });
+
+                    // Secondary visualizer recedes
+                    this.visualizers.secondary.updateParameters({
+                        hue: secondaryHue,
+                        intensity: 0.12,
+                        gridDensity: 35,
+                        speed: 0.35,
+                        morphFactor: 0.7
+                    });
+
+                    // Coordinate layer states
+                    document.getElementById('viz-primary').classList.add('dominant');
+                    document.getElementById('viz-secondary').classList.add('recessed');
+                } else {
+                    // Return to neutral state
+                    this.visualizers.primary.updateParameters({
+                        hue: 0.52,
+                        intensity: 0.22,
+                        gridDensity: 45,
+                        speed: 0.45,
+                        morphFactor: 1.3
+                    });
+
+                    this.visualizers.secondary.updateParameters({
+                        hue: 0.45,
+                        intensity: 0.14,
+                        gridDensity: 30,
+                        speed: 0.30,
+                        morphFactor: 0.8
+                    });
+
+                    document.getElementById('viz-primary').classList.remove('dominant');
+                    document.getElementById('viz-secondary').classList.remove('recessed');
+                }
+            }
+
+            setupMouseTracking() {
+                let mouseX = 0, mouseY = 0;
+                let smoothX = 0, smoothY = 0;
+
+                window.addEventListener('mousemove', (e) => {
+                    mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+                    mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+                });
+
+                const update = () => {
+                    smoothX += (mouseX - smoothX) * 0.06;
+                    smoothY += (mouseY - smoothY) * 0.06;
+
+                    // Coordinated mouse response - primary leads, secondary follows
+                    this.visualizers.primary.updateParameters({
+                        rot4dXW: smoothY * 0.4,
+                        rot4dYW: smoothX * 0.4
+                    });
+
+                    this.visualizers.secondary.updateParameters({
+                        rot4dXW: smoothY * 0.25,
+                        rot4dYW: smoothX * 0.25
+                    });
+
+                    requestAnimationFrame(update);
+                };
+                update();
+            }
+        }
+
+        // ========== TEXT ANIMATION OBSERVER ==========
+        const observeElements = () => {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry, index) => {
+                    if (entry.isIntersecting) {
+                        setTimeout(() => {
+                            entry.target.classList.add('visible');
+                        }, index * 100);
+                    }
+                });
+            }, { threshold: 0.25 });
+
+            document.querySelectorAll('.section-title, .info-card').forEach(el => {
+                observer.observe(el);
+            });
+        };
+
+        // ========== SCROLL-RESPONSIVE HEADER ==========
+        class ScrollHeader {
+            constructor() {
+                this.header = document.querySelector('header');
+                this.lastScroll = 0;
+                this.init();
+            }
+
+            init() {
+                window.addEventListener('scroll', () => this.handleScroll());
+            }
+
+            handleScroll() {
+                const currentScroll = window.pageYOffset;
+
+                // Add scrolled class after 100px
+                if (currentScroll > 100) {
+                    this.header.classList.add('scrolled');
+                } else {
+                    this.header.classList.remove('scrolled');
+                }
+
+                // Hide header on scroll down, show on scroll up
+                if (currentScroll > this.lastScroll && currentScroll > 500) {
+                    this.header.classList.add('hidden');
+                } else {
+                    this.header.classList.remove('hidden');
+                }
+
+                this.lastScroll = currentScroll;
+            }
+        }
+
+        // ========== CARD TILT INTERACTION ==========
+        class CardTiltEffect {
+            constructor() {
+                this.cards = document.querySelectorAll('.morph-card:not(.expanded)');
+                this.init();
+            }
+
+            init() {
+                document.querySelectorAll('.morph-card').forEach(card => {
+                    card.addEventListener('mousemove', (e) => this.handleMouseMove(e, card));
+                    card.addEventListener('mouseleave', () => this.handleMouseLeave(card));
+                });
+            }
+
+            handleMouseMove(e, card) {
+                // Only apply tilt when card is not expanded
+                if (card.classList.contains('expanded')) return;
+
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+
+                const rotateX = ((y - centerY) / centerY) * -5; // Max 5 degrees
+                const rotateY = ((x - centerX) / centerX) * 5;
+
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
+            }
+
+            handleMouseLeave(card) {
+                if (!card.classList.contains('expanded')) {
+                    card.style.transform = '';
+                }
+            }
+        }
+
+        // ========== INITIALIZATION ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            const primaryViz = new CoordinatedVisualizer('viz-primary', true);
+            const secondaryViz = new CoordinatedVisualizer('viz-secondary', false);
+
+            const visualizers = {
+                primary: primaryViz,
+                secondary: secondaryViz
+            };
+
+            function renderLoop() {
+                primaryViz.render();
+                secondaryViz.render();
+                requestAnimationFrame(renderLoop);
+            }
+            renderLoop();
+
+            new IntelligentCardSystem(visualizers);
+            new ScrollHeader();
+            new CardTiltEffect();
+            observeElements();
+        });
+    </script>
+</body>
+</html>

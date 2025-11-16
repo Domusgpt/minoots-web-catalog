@@ -1,0 +1,3262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MINOOTS - Distributed Horology Platform</title>
+    <!-- Google Fonts - commented out for testing, good fallbacks in CSS -->
+    <!-- <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet"> -->
+
+    <!-- GSAP Core + Plugins (LOCAL) -->
+    <script src="./lib/gsap.min.js"></script>
+    <script src="./lib/ScrollTrigger.min.js"></script>
+    <!-- Note: ScrollSmoother and split-type not currently used, commented out -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollSmoother.min.js"></script>
+    <script src="https://unpkg.com/split-type"></script> -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --cyan: #00ffff;
+            --magenta: #ff00ff;
+            --blue: #0080ff;
+            --green: #00ff80;
+            --yellow: #ffff00;
+            --orange: #ff8800;
+            --purple: #8800ff;
+            --font-display: 'Orbitron', 'Courier New', monospace, sans-serif;
+            --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+
+            /* Dynamic section colors */
+            --section-primary: var(--cyan);
+            --section-secondary: var(--magenta);
+            --section-accent: var(--blue);
+        }
+
+        /* Holographic animation keyframes */
+        @keyframes holographic-shift {
+            0%, 100% {
+                background-position: 0% 50%;
+                filter: hue-rotate(0deg);
+            }
+            50% {
+                background-position: 100% 50%;
+                filter: hue-rotate(30deg);
+            }
+        }
+
+        @keyframes holographic-glow {
+            0%, 100% {
+                text-shadow:
+                    0 0 10px var(--section-primary),
+                    0 0 20px var(--section-primary),
+                    0 0 30px var(--section-secondary),
+                    0 0 40px var(--section-secondary);
+            }
+            50% {
+                text-shadow:
+                    0 0 20px var(--section-secondary),
+                    0 0 30px var(--section-secondary),
+                    0 0 40px var(--section-primary),
+                    0 0 50px var(--section-primary);
+            }
+        }
+
+        @keyframes float-particles {
+            0% {
+                transform: translateY(0) translateX(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) translateX(20px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes card-form {
+            0% {
+                clip-path: circle(0% at 50% 50%);
+                opacity: 0;
+            }
+            50% {
+                clip-path: circle(60% at 50% 50%);
+                opacity: 0.5;
+            }
+            100% {
+                clip-path: circle(100% at 50% 50%);
+                opacity: 1;
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -1000px 0;
+            }
+            100% {
+                background-position: 1000px 0;
+            }
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        html, body {
+            width: 100%;
+            min-height: 100%;
+            background: #000000;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: var(--font-body);
+            color: #ffffff;
+            -webkit-font-smoothing: antialiased;
+            overflow-y: scroll;
+        }
+
+        /* SMOOTH SCROLLER WRAPPER */
+        #smooth-wrapper {
+            overflow: visible;
+        }
+
+        #smooth-content {
+            overflow: visible;
+            will-change: transform;
+        }
+
+        /* VIB3+ Quantum Visualizer - FIXED BACKGROUND */
+        .quantum-layers {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            will-change: transform, opacity, filter;
+        }
+
+        /* Intro state - visualizer fills screen */
+        .quantum-layers.intro {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        /* Condensing state - shrinking into card */
+        .quantum-layers.condensing {
+            transform: scale(0.5);
+            opacity: 0.8;
+        }
+
+        /* Ejecting state - rapidly leaving */
+        .quantum-layers.ejecting {
+            transform: scale(3) translate(0, -100vh);
+            opacity: 0;
+            transition: all 2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        /* Normal scroll state */
+        .quantum-layers.scrolling {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .quantum-canvas {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            mix-blend-mode: screen;
+
+            /* ORGANIC MASK SYSTEM - Radial gradients instead of hard edges */
+            --mask-center-x: 50%;
+            --mask-center-y: 50%;
+            --mask-radius-x: 85%;
+            --mask-radius-y: 80%;
+            --mask-feather-start: 40%;
+            --mask-feather-end: 100%;
+
+            mask-image: radial-gradient(
+                ellipse var(--mask-radius-x) var(--mask-radius-y)
+                at var(--mask-center-x) var(--mask-center-y),
+                black 0%,
+                black var(--mask-feather-start),
+                transparent var(--mask-feather-end)
+            );
+            mask-composite: intersect;
+            -webkit-mask-image: radial-gradient(
+                ellipse var(--mask-radius-x) var(--mask-radius-y)
+                at var(--mask-center-x) var(--mask-center-y),
+                black 0%,
+                black var(--mask-feather-start),
+                transparent var(--mask-feather-end)
+            );
+            -webkit-mask-composite: source-in;
+
+            /* Breathing will be animated via GSAP for proper CSS var support */
+        }
+
+        /* Layer-specific mask variations for depth */
+        #quantum-background {
+            opacity: 0.3;
+            z-index: 1;
+            --mask-radius-x: 95%;
+            --mask-radius-y: 90%;
+            --mask-feather-start: 50%;
+            animation-delay: 0s;
+            animation-duration: 9s;
+        }
+
+        #quantum-shadow {
+            opacity: 0.2;
+            z-index: 2;
+            mix-blend-mode: multiply;
+            --mask-radius-x: 88%;
+            --mask-radius-y: 85%;
+            --mask-feather-start: 45%;
+            animation-delay: 0.5s;
+            animation-duration: 8.5s;
+        }
+
+        #quantum-content {
+            opacity: 0.6;
+            z-index: 3;
+            --mask-radius-x: 85%;
+            --mask-radius-y: 80%;
+            --mask-feather-start: 40%;
+            animation-delay: 1s;
+            animation-duration: 8s;
+        }
+
+        #quantum-highlight {
+            opacity: 0.4;
+            z-index: 4;
+            --mask-radius-x: 78%;
+            --mask-radius-y: 75%;
+            --mask-feather-start: 35%;
+            animation-delay: 1.5s;
+            animation-duration: 7.5s;
+        }
+
+        #quantum-accent {
+            opacity: 0.25;
+            z-index: 5;
+            --mask-radius-x: 70%;
+            --mask-radius-y: 68%;
+            --mask-feather-start: 30%;
+            animation-delay: 2s;
+            animation-duration: 7s;
+        }
+
+        /* INTRO HERO - STARTS VISIBLE */
+        #intro-hero {
+            position: relative;
+            height: 300vh; /* Extended for smooth transitions */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        #intro-hero-content {
+            position: relative;
+            text-align: center;
+            z-index: 15;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .intro-title {
+            font-size: clamp(4rem, 10vw, 8rem);
+            opacity: 1;
+            will-change: transform, opacity;
+            animation: holographic-glow 3s ease-in-out infinite;
+        }
+
+        /* Formation card - appears around title */
+        .formation-card {
+            position: absolute;
+            inset: -100px -200px;
+            background: rgba(10, 10, 20, 0);
+            backdrop-filter: blur(0px);
+            border: 0px solid rgba(0, 255, 255, 0);
+            border-radius: 0px;
+            box-shadow: none;
+            opacity: 0;
+            pointer-events: none;
+            z-index: -1;
+            will-change: all;
+        }
+
+        /* SECTION SYSTEM - CENTER LOCK */
+        .section {
+            position: relative;
+            min-height: 200vh; /* Extended for center-lock effect */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 100px 40px;
+            z-index: 10;
+        }
+
+        /* Pin wrapper for center-locking */
+        .section-pin-wrapper {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Section-specific color themes */
+        .section[data-theme="cyan"] {
+            --section-primary: var(--cyan);
+            --section-secondary: var(--blue);
+            --section-accent: var(--magenta);
+        }
+
+        .section[data-theme="magenta"] {
+            --section-primary: var(--magenta);
+            --section-secondary: var(--purple);
+            --section-accent: var(--cyan);
+        }
+
+        .section[data-theme="green"] {
+            --section-primary: var(--green);
+            --section-secondary: var(--cyan);
+            --section-accent: var(--yellow);
+        }
+
+        .section[data-theme="purple"] {
+            --section-primary: var(--purple);
+            --section-secondary: var(--magenta);
+            --section-accent: var(--blue);
+        }
+
+        .section[data-theme="orange"] {
+            --section-primary: var(--orange);
+            --section-secondary: var(--yellow);
+            --section-accent: var(--magenta);
+        }
+
+        .section-content {
+            max-width: 1400px;
+            width: 100%;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* PARALLAX LAYERS */
+        .parallax-layer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        /* FLUID MORPHING CARDS WITH HOLOGRAPHIC EFFECTS */
+        .morph-card {
+            position: relative;
+            padding: 80px 60px;
+            background: rgba(10, 10, 20, 0.85);
+            backdrop-filter: blur(30px);
+            border: 2px solid var(--section-primary);
+            border-opacity: 0.3;
+            border-radius: 40px;
+            box-shadow:
+                0 0 80px rgba(0, 255, 255, 0.2),
+                inset 0 0 60px rgba(0, 255, 255, 0.05),
+                0 30px 90px rgba(0, 0, 0, 0.5);
+            transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-style: preserve-3d;
+            will-change: transform;
+            cursor: pointer;
+            overflow: hidden;
+            margin: 40px 0;
+        }
+
+        /* Holographic border shimmer */
+        .morph-card::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                var(--section-primary),
+                var(--section-secondary),
+                transparent
+            );
+            border-radius: 40px;
+            opacity: 0;
+            animation: shimmer 3s linear infinite;
+            pointer-events: none;
+            z-index: -1;
+            transition: opacity 0.5s ease;
+        }
+
+        .morph-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            border-color: var(--section-primary);
+            box-shadow:
+                0 0 120px var(--section-primary),
+                inset 0 0 80px var(--section-secondary),
+                0 40px 120px rgba(0, 0, 0, 0.6),
+                0 0 200px var(--section-primary);
+        }
+
+        .morph-card:hover::after {
+            opacity: 0.6;
+        }
+
+        /* Interactive state - clicked/touched */
+        .morph-card.active {
+            border-color: var(--section-secondary);
+            box-shadow:
+                0 0 150px var(--section-secondary),
+                inset 0 0 100px var(--section-primary),
+                0 50px 150px rgba(0, 0, 0, 0.8);
+            transform: translateY(-15px) scale(1.05);
+        }
+
+        .morph-card.active::after {
+            opacity: 1;
+        }
+
+        .morph-card.expanded {
+            position: fixed;
+            inset: 40px;
+            z-index: 1000;
+            margin: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            border-radius: 20px;
+            max-height: calc(100vh - 80px);
+        }
+
+        .morph-card.expanded::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .morph-card.expanded::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .morph-card.expanded::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 255, 0.5);
+            border-radius: 4px;
+        }
+
+        .morph-card.expanded::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 255, 255, 0.7);
+        }
+
+        /* Card Grid Layouts */
+        .card-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 40px;
+            margin: 60px 0;
+        }
+
+        .card-grid.two-col {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .card-grid.three-col {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        @media (max-width: 1024px) {
+            .card-grid.two-col,
+            .card-grid.three-col {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Card Close Button */
+        .card-close {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(0, 255, 255, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+
+        .card-close:hover {
+            background: rgba(0, 255, 255, 0.2);
+            transform: rotate(90deg);
+        }
+
+        .morph-card.expanded .card-close {
+            display: flex;
+        }
+
+        .card-close::before,
+        .card-close::after {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 2px;
+            background: var(--cyan);
+        }
+
+        .card-close::before {
+            transform: rotate(45deg);
+        }
+
+        .card-close::after {
+            transform: rotate(-45deg);
+        }
+
+        /* Card background accent */
+        .card-bg-accent {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+                        rgba(0, 255, 255, 0.15) 0%, transparent 60%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+        }
+
+        .morph-card:hover .card-bg-accent {
+            opacity: 1;
+        }
+
+        /* TYPOGRAPHY WITH HOLOGRAPHIC EFFECTS */
+        h1 {
+            font-family: var(--font-display);
+            font-size: clamp(3.5rem, 8vw, 7rem);
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: 40px;
+            background: linear-gradient(
+                135deg,
+                var(--section-primary),
+                var(--section-secondary),
+                var(--section-accent),
+                var(--section-primary)
+            );
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -2px;
+            animation: holographic-shift 4s ease infinite;
+            position: relative;
+            filter: drop-shadow(0 0 20px var(--section-primary));
+            transition: all 0.5s ease;
+        }
+
+        h1:hover,
+        h1.active {
+            background-size: 300% 300%;
+            filter: drop-shadow(0 0 40px var(--section-primary))
+                    drop-shadow(0 0 60px var(--section-secondary));
+            transform: scale(1.05);
+        }
+
+        /* Holographic shadow effect */
+        h1::before {
+            content: attr(data-text);
+            position: absolute;
+            left: 0;
+            top: 0;
+            z-index: -1;
+            background: linear-gradient(
+                135deg,
+                var(--section-primary),
+                var(--section-secondary)
+            );
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: blur(20px);
+            opacity: 0.6;
+            animation: holographic-shift 4s ease infinite reverse;
+        }
+
+        h2 {
+            font-family: var(--font-display);
+            font-size: clamp(2.5rem, 5vw, 4.5rem);
+            font-weight: 700;
+            margin-bottom: 30px;
+            background: linear-gradient(
+                90deg,
+                var(--section-primary),
+                var(--section-secondary),
+                var(--section-primary)
+            );
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -1px;
+            animation: shimmer 3s linear infinite;
+            filter: drop-shadow(0 0 10px var(--section-primary));
+            transition: all 0.4s ease;
+        }
+
+        h2:hover,
+        h2.active {
+            filter: drop-shadow(0 0 20px var(--section-primary))
+                    drop-shadow(0 0 30px var(--section-secondary));
+            transform: translateX(5px);
+        }
+
+        h3 {
+            font-family: var(--font-display);
+            font-size: clamp(1.8rem, 3vw, 3rem);
+            font-weight: 600;
+            margin-bottom: 24px;
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        .subtitle {
+            font-size: clamp(1.5rem, 2.8vw, 2.5rem);
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 50px;
+            line-height: 1.4;
+        }
+
+        .body-text {
+            font-size: clamp(1.1rem, 1.8vw, 1.4rem);
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.75);
+            margin-bottom: 30px;
+        }
+
+        .body-text.large {
+            font-size: clamp(1.3rem, 2vw, 1.7rem);
+            line-height: 1.7;
+        }
+
+        /* Split Text Animation Classes */
+        .split-chars {
+            display: inline-block;
+            overflow: hidden;
+        }
+
+        .char {
+            display: inline-block;
+            transform: translateY(100%);
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .line {
+            overflow: hidden;
+        }
+
+        .word {
+            display: inline-block;
+        }
+
+        /* STATS GRID */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin: 80px 0;
+        }
+
+        .stat-card {
+            padding: 50px 40px;
+            background: rgba(0, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 30px;
+            text-align: center;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer;
+        }
+
+        .stat-card:hover {
+            background: rgba(0, 255, 255, 0.1);
+            border-color: rgba(0, 255, 255, 0.5);
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 20px 60px rgba(0, 255, 255, 0.2);
+        }
+
+        .stat-number {
+            font-family: var(--font-display);
+            font-size: clamp(3rem, 5vw, 4.5rem);
+            font-weight: 900;
+            color: var(--cyan);
+            margin-bottom: 15px;
+            text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+        }
+
+        .stat-label {
+            font-size: clamp(1rem, 1.5vw, 1.3rem);
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* FEATURE LIST */
+        .feature-list {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            margin: 60px 0;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 30px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.5s ease;
+        }
+
+        .feature-item:hover {
+            background: rgba(0, 255, 255, 0.05);
+            border-color: rgba(0, 255, 255, 0.3);
+            transform: translateX(10px);
+        }
+
+        .feature-icon {
+            min-width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 16px;
+            font-size: 2rem;
+        }
+
+        .feature-content h3 {
+            margin-bottom: 12px;
+        }
+
+        /* ACCENT TEXT */
+        .accent { color: var(--cyan); font-weight: 700; }
+        .highlight { color: var(--magenta); font-weight: 700; }
+        .glow { color: var(--green); font-weight: 700; }
+
+        /* BUTTONS */
+        .btn {
+            display: inline-block;
+            padding: 18px 40px;
+            background: linear-gradient(135deg, var(--cyan), var(--blue));
+            color: #000;
+            font-weight: 700;
+            font-size: 1.1rem;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.4s ease;
+            box-shadow: 0 10px 40px rgba(0, 255, 255, 0.3);
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 15px 60px rgba(0, 255, 255, 0.5);
+        }
+
+        .btn.btn-outline {
+            background: transparent;
+            border: 2px solid var(--cyan);
+            color: var(--cyan);
+        }
+
+        .btn.btn-outline:hover {
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        /* SCROLL PROGRESS BAR */
+        .scroll-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: rgba(0, 255, 255, 0.2);
+            z-index: 10000;
+        }
+
+        .scroll-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--cyan), var(--magenta));
+            width: 0%;
+            transition: width 0.2s ease;
+        }
+
+        /* REVEAL ANIMATIONS - TEMPORARILY DISABLED FOR DEBUGGING */
+        .reveal {
+            opacity: 1; /* Changed from 0 to 1 for testing */
+            transform: translateY(0); /* Changed from 60px to 0 */
+        }
+
+        .reveal-left {
+            opacity: 1; /* Changed from 0 to 1 for testing */
+            transform: translateX(0); /* Changed from -60px to 0 */
+        }
+
+        .reveal-right {
+            opacity: 1; /* Changed from 0 to 1 for testing */
+            transform: translateX(0); /* Changed from 60px to 0 */
+        }
+
+        .reveal-scale {
+            opacity: 1; /* Changed from 0 to 1 for testing */
+            transform: scale(1); /* Changed from 0.8 to 1 */
+        }
+
+        /* OVERLAY */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* MOBILE RESPONSIVENESS */
+        @media (max-width: 768px) {
+            .section {
+                padding: 80px 20px;
+            }
+
+            .morph-card {
+                padding: 50px 30px;
+            }
+
+            .morph-card.expanded {
+                inset: 20px;
+                padding: 40px 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Scroll Progress -->
+    <div class="scroll-progress">
+        <div class="scroll-progress-bar" id="scroll-progress"></div>
+    </div>
+
+    <!-- VIB3+ Quantum Visualizer - Fixed Background -->
+    <div class="quantum-layers" id="quantum-layers">
+        <canvas id="quantum-background" class="quantum-canvas"></canvas>
+        <canvas id="quantum-shadow" class="quantum-canvas"></canvas>
+        <canvas id="quantum-content" class="quantum-canvas"></canvas>
+        <canvas id="quantum-highlight" class="quantum-canvas"></canvas>
+        <canvas id="quantum-accent" class="quantum-canvas"></canvas>
+    </div>
+
+    <!-- Overlay for Expanded Cards -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Main Content -->
+    <div id="smooth-wrapper">
+        <div id="smooth-content">
+
+            <!-- INTRO HERO - EPIC SEQUENCE -->
+            <section id="intro-hero">
+                <div id="intro-hero-content">
+                    <div class="formation-card" id="formation-card"></div>
+                    <h1 class="intro-title holographic-text" id="intro-title" data-text="MINOOTS">MINOOTS</h1>
+                </div>
+            </section>
+
+            <!-- HERO SECTION -->
+            <section class="section" id="hero" data-theme="cyan">
+                <div class="section-content">
+                    <h1 class="reveal" data-animate="fade-up" data-text="Welcome">Welcome</h1>
+                    <div class="subtitle reveal" data-animate="fade-up" data-delay="0.2">
+                        What if time itself could be <span class="accent">autonomous</span>?
+                    </div>
+                    <p class="body-text large reveal" data-animate="fade-up" data-delay="0.4">
+                        The world's first <span class="highlight">distributed horology platform</span> designed
+                        for the agentic future.
+                    </p>
+                </div>
+            </section>
+
+            <!-- OVERVIEW SECTION -->
+            <section class="section" id="overview" data-theme="magenta">
+                <div class="section-content">
+                    <div class="morph-card reveal" data-animate="scale" data-expandable>
+                        <div class="card-bg-accent"></div>
+                        <div class="card-close"></div>
+                        <h2>Distributed Horology<br/>for Autonomous Systems</h2>
+                        <p class="body-text">
+                            MINOOTS isn't just another timer system. It's a <span class="accent">distributed horology platform</span>
+                            that enables <span class="highlight">50M+ concurrent timers</span> with ±50ms precision and 99.99% uptime.
+                        </p>
+                        <p class="body-text">
+                            Built from the ground up for AI agents, autonomous systems, and temporal orchestration at planetary scale.
+                        </p>
+
+                        <!-- EXPANDED CONTENT (hidden by default) -->
+                        <div class="expanded-content" style="display: none;">
+                            <h3>Why Distributed Horology?</h3>
+                            <p class="body-text">
+                                Traditional cron and setTimeout systems fail at scale. They're tied to single machines,
+                                can't survive restarts, and crumble under load. MINOOTS solves this with a
+                                <span class="accent">distributed-first architecture</span>.
+                            </p>
+
+                            <div class="feature-list">
+                                <div class="feature-item">
+                                    <div class="feature-icon">⚡</div>
+                                    <div class="feature-content">
+                                        <h3>Millisecond Precision</h3>
+                                        <p class="body-text">±50ms accuracy guaranteed across all timers, even at massive scale.</p>
+                                    </div>
+                                </div>
+                                <div class="feature-item">
+                                    <div class="feature-icon">🔄</div>
+                                    <div class="feature-content">
+                                        <h3>Persistent Timers</h3>
+                                        <p class="body-text">Timers survive server restarts, deployments, and infrastructure changes.</p>
+                                    </div>
+                                </div>
+                                <div class="feature-item">
+                                    <div class="feature-icon">📈</div>
+                                    <div class="feature-content">
+                                        <h3>Infinite Scale</h3>
+                                        <p class="body-text">From 1 timer to 50M+ concurrent timers with automatic sharding and load balancing.</p>
+                                    </div>
+                                </div>
+                                <div class="feature-item">
+                                    <div class="feature-icon">🛡️</div>
+                                    <div class="feature-content">
+                                        <h3>Fault Tolerant</h3>
+                                        <p class="body-text">Raft consensus ensures no timer is ever lost, even during node failures.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- STATS SECTION -->
+            <section class="section" id="stats" data-theme="green">
+                <div class="section-content">
+                    <h2 class="reveal" data-animate="fade-up" data-text="Stats">Battle-Tested at Scale</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card reveal" data-animate="scale" data-delay="0.1">
+                            <div class="stat-number">50M+</div>
+                            <div class="stat-label">Concurrent Timers</div>
+                        </div>
+                        <div class="stat-card reveal" data-animate="scale" data-delay="0.2">
+                            <div class="stat-number">±50ms</div>
+                            <div class="stat-label">Precision</div>
+                        </div>
+                        <div class="stat-card reveal" data-animate="scale" data-delay="0.3">
+                            <div class="stat-number">99.99%</div>
+                            <div class="stat-label">Uptime SLA</div>
+                        </div>
+                        <div class="stat-card reveal" data-animate="scale" data-delay="0.4">
+                            <div class="stat-number">∞</div>
+                            <div class="stat-label">Horizontal Scale</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ARCHITECTURE SECTION -->
+            <section class="section" id="architecture" data-theme="purple">
+                <div class="section-content">
+                    <div class="card-grid two-col">
+                        <div class="morph-card reveal-left" data-expandable>
+                            <div class="card-bg-accent"></div>
+                            <div class="card-close"></div>
+                            <h2>Horology Kernel</h2>
+                            <p class="body-text">
+                                The core timing engine built on <span class="highlight">Rust</span> for
+                                uncompromising performance and safety.
+                            </p>
+
+                            <!-- EXPANDED CONTENT -->
+                            <div class="expanded-content" style="display: none;">
+                                <h3>Architecture Components</h3>
+                                <div class="feature-list">
+                                    <div class="feature-item">
+                                        <div class="feature-icon">⚙️</div>
+                                        <div class="feature-content">
+                                            <h3>Tokio Async Runtime</h3>
+                                            <p class="body-text">
+                                                Multi-threaded async runtime handling millions of concurrent timers
+                                                with minimal overhead. Each timer is a lightweight task that sleeps
+                                                until its fire time.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="feature-item">
+                                        <div class="feature-icon">🗄️</div>
+                                        <div class="feature-content">
+                                            <h3>PostgreSQL Storage</h3>
+                                            <p class="body-text">
+                                                ACID-compliant timer persistence with B-tree indexes for
+                                                lightning-fast lookups. Partitioning by fire time ensures
+                                                optimal query performance.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="feature-item">
+                                        <div class="feature-icon">🔗</div>
+                                        <div class="feature-content">
+                                            <h3>Raft Consensus</h3>
+                                            <p class="body-text">
+                                                Distributed consensus ensures timer state is replicated across
+                                                nodes. Leader election and log replication guarantee no timer
+                                                is ever lost.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="feature-item">
+                                        <div class="feature-icon">⏰</div>
+                                        <div class="feature-content">
+                                            <h3>Hierarchical Timing Wheels</h3>
+                                            <p class="body-text">
+                                                O(1) timer insertion and deletion using hierarchical timing wheels.
+                                                Millisecond-precision timers in the fast wheel, long-duration in slow wheels.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <h3>Performance Characteristics</h3>
+                                <p class="body-text">
+                                    • <span class="accent">Memory:</span> ~100 bytes per timer<br/>
+                                    • <span class="accent">CPU:</span> <1% for 1M timers on 8-core machine<br/>
+                                    • <span class="accent">Latency:</span> P99 < 50ms for timer callbacks<br/>
+                                    • <span class="accent">Throughput:</span> 100K+ timer creates/sec per node
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="morph-card reveal-right" data-expandable>
+                            <div class="card-bg-accent"></div>
+                            <div class="card-close"></div>
+                            <h2>Event Fabric</h2>
+                            <p class="body-text">
+                                Distributed event delivery with <span class="accent">NATS JetStream</span> and
+                                Kafka for guaranteed delivery and replay.
+                            </p>
+
+                            <!-- EXPANDED CONTENT -->
+                            <div class="expanded-content" style="display: none;">
+                                <h3>Event Delivery System</h3>
+                                <div class="feature-list">
+                                    <div class="feature-item">
+                                        <div class="feature-icon">📡</div>
+                                        <div class="feature-content">
+                                            <h3>NATS JetStream</h3>
+                                            <p class="body-text">
+                                                Primary event bus with persistence, replay, and exactly-once delivery.
+                                                Handles 10M+ messages/sec with microsecond latency.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="feature-item">
+                                        <div class="feature-icon">📨</div>
+                                        <div class="feature-content">
+                                            <h3>Kafka Integration</h3>
+                                            <p class="body-text">
+                                                Long-term event storage and streaming. Every timer fire is logged
+                                                for audit, replay, and analytics.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="feature-item">
+                                        <div class="feature-icon">💀</div>
+                                        <div class="feature-content">
+                                            <h3>Dead Letter Queues</h3>
+                                            <p class="body-text">
+                                                Failed callbacks are automatically retried with exponential backoff.
+                                                After max retries, moved to DLQ for manual intervention.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="feature-item">
+                                        <div class="feature-icon">🎯</div>
+                                        <div class="feature-content">
+                                            <h3>Webhooks & Callbacks</h3>
+                                            <p class="body-text">
+                                                Fire HTTP webhooks, gRPC calls, or internal functions. Automatic retries,
+                                                circuit breakers, and rate limiting built-in.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- USE CASES SECTION -->
+            <section class="section" id="use-cases" data-theme="orange">
+                <div class="section-content">
+                    <h2 class="reveal" data-animate="fade-up" data-text="Use Cases">Built for the Agentic Future</h2>
+                    <p class="body-text large reveal" data-animate="fade-up" data-delay="0.2">
+                        AI agents need persistent timers that survive restarts, scale to millions of instances,
+                        and fire with <span class="highlight">millisecond precision</span>.
+                    </p>
+
+                    <div class="card-grid three-col">
+                        <div class="morph-card reveal" data-animate="scale" data-delay="0.1" data-expandable>
+                            <div class="card-bg-accent"></div>
+                            <div class="card-close"></div>
+                            <h3>🤖 AI Agents</h3>
+                            <p class="body-text">
+                                Schedule agent tasks, reminders, and periodic checks that persist across restarts.
+                            </p>
+
+                            <div class="expanded-content" style="display: none;">
+                                <h3>Agent Orchestration</h3>
+                                <p class="body-text">
+                                    MINOOTS enables sophisticated temporal workflows for AI agents:
+                                </p>
+                                <div class="feature-list">
+                                    <div class="feature-item">
+                                        <div class="feature-icon">⏳</div>
+                                        <div class="feature-content">
+                                            <h3>Delayed Actions</h3>
+                                            <p class="body-text">
+                                                "Remind me in 3 hours" → Agent schedules timer → Timer fires →
+                                                Agent receives callback → Takes action
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="feature-item">
+                                        <div class="feature-icon">🔄</div>
+                                        <div class="feature-content">
+                                            <h3>Periodic Tasks</h3>
+                                            <p class="body-text">
+                                                Check email every 15 minutes, generate reports daily,
+                                                backup data weekly. All managed by MINOOTS.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="feature-item">
+                                        <div class="feature-icon">⚡</div>
+                                        <div class="feature-content">
+                                            <h3>Deadline Management</h3>
+                                            <p class="body-text">
+                                                Set deadlines for task completion. If agent doesn't respond,
+                                                timer fires and escalates to human or backup agent.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <h3>Integration Example</h3>
+                                <p class="body-text">
+                                    <pre style="background: rgba(0,0,0,0.5); padding: 20px; border-radius: 12px; overflow-x: auto;">
+<code style="color: var(--cyan);">// Create a persistent timer for an agent
+const timer = await minoots.create({
+  name: "agent-reminder",
+  fireAt: Date.now() + (3 * 60 * 60 * 1000), // 3 hours
+  callback: "https://agent.ai/webhook",
+  metadata: {
+    agentId: "agent-123",
+    task: "Follow up on proposal"
+  }
+});
+
+// Timer persists even if server restarts!
+</code></pre>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="morph-card reveal" data-animate="scale" data-delay="0.2" data-expandable>
+                            <div class="card-bg-accent"></div>
+                            <div class="card-close"></div>
+                            <h3>⚙️ Workflow Engines</h3>
+                            <p class="body-text">
+                                Build temporal workflows with delays, retries, and complex scheduling logic.
+                            </p>
+
+                            <div class="expanded-content" style="display: none;">
+                                <h3>Temporal Orchestration</h3>
+                                <p class="body-text">
+                                    Power sophisticated workflow systems with reliable timing:
+                                </p>
+                                <div class="feature-list">
+                                    <div class="feature-item">
+                                        <div class="feature-icon">🔀</div>
+                                        <div class="feature-content">
+                                            <h3>Multi-Step Workflows</h3>
+                                            <p class="body-text">
+                                                Coordinate complex workflows with delays between steps.
+                                                Wait for approval, then execute next step 24 hours later.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="feature-item">
+                                        <div class="feature-icon">🔁</div>
+                                        <div class="feature-content">
+                                            <h3>Retry Logic</h3>
+                                            <p class="body-text">
+                                                Automatic retries with exponential backoff. Failed step?
+                                                Retry in 1min, then 5min, then 15min, etc.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="feature-item">
+                                        <div class="feature-icon">⏱️</div>
+                                        <div class="feature-content">
+                                            <h3>SLA Enforcement</h3>
+                                            <p class="body-text">
+                                                Set SLA timers for each workflow step. Automatically escalate
+                                                if step takes too long.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="morph-card reveal" data-animate="scale" data-delay="0.3" data-expandable>
+                            <div class="card-bg-accent"></div>
+                            <div class="card-close"></div>
+                            <h3>📊 Data Pipelines</h3>
+                            <p class="body-text">
+                                Schedule ETL jobs, data refreshes, and batch processing at any scale.
+                            </p>
+
+                            <div class="expanded-content" style="display: none;">
+                                <h3>Scheduled Data Processing</h3>
+                                <p class="body-text">
+                                    Replace cron with distributed, fault-tolerant scheduling:
+                                </p>
+                                <div class="feature-list">
+                                    <div class="feature-item">
+                                        <div class="feature-icon">📥</div>
+                                        <div class="feature-content">
+                                            <h3>ETL Orchestration</h3>
+                                            <p class="body-text">
+                                                Run data extraction every 5 minutes, transformation hourly,
+                                                and load to warehouse daily. All coordinated by MINOOTS.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="feature-item">
+                                        <div class="feature-icon">🔄</div>
+                                        <div class="feature-content">
+                                            <h3>Cache Refresh</h3>
+                                            <p class="body-text">
+                                                Invalidate and refresh caches on schedule. Different refresh
+                                                rates for hot vs cold data.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="feature-item">
+                                        <div class="feature-icon">📈</div>
+                                        <div class="feature-content">
+                                            <h3>Report Generation</h3>
+                                            <p class="body-text">
+                                                Generate daily reports at 8am in each timezone. MINOOTS handles
+                                                the complexity of timezone-aware scheduling.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- INTEGRATIONS SECTION -->
+            <section class="section" id="integrations" data-theme="cyan">
+                <div class="section-content">
+                    <div class="morph-card reveal" data-animate="scale" data-expandable>
+                        <div class="card-bg-accent"></div>
+                        <div class="card-close"></div>
+                        <h2 data-text="Integrations">Universal Integration</h2>
+                        <p class="body-text large">
+                            <span class="accent">Node.js SDK</span> • Python Client • MCP Tools • REST API • CLI
+                        </p>
+                        <p class="body-text">
+                            Works seamlessly with: <span class="highlight">LangChain • AutoGen • LlamaIndex • CrewAI • Slack • Discord</span>
+                        </p>
+
+                        <div class="expanded-content" style="display: none;">
+                            <h3>SDKs & Clients</h3>
+                            <div class="feature-list">
+                                <div class="feature-item">
+                                    <div class="feature-icon">📦</div>
+                                    <div class="feature-content">
+                                        <h3>Node.js SDK</h3>
+                                        <p class="body-text">
+                                            <pre style="background: rgba(0,0,0,0.5); padding: 20px; border-radius: 12px; overflow-x: auto;">
+<code style="color: var(--cyan);">npm install @minoots/client
+
+import { MinootsClient } from '@minoots/client';
+
+const client = new MinootsClient({
+  apiKey: process.env.MINOOTS_API_KEY
+});
+
+// Create a timer
+await client.timers.create({
+  name: 'my-timer',
+  fireAt: new Date(Date.now() + 60000),
+  webhook: 'https://myapp.com/callback'
+});
+</code></pre>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="feature-item">
+                                    <div class="feature-icon">🐍</div>
+                                    <div class="feature-content">
+                                        <h3>Python Client</h3>
+                                        <p class="body-text">
+                                            <pre style="background: rgba(0,0,0,0.5); padding: 20px; border-radius: 12px; overflow-x: auto;">
+<code style="color: var(--green);">pip install minoots
+
+from minoots import MinootsClient
+from datetime import datetime, timedelta
+
+client = MinootsClient(api_key=os.environ['MINOOTS_API_KEY'])
+
+# Create a recurring timer
+timer = client.timers.create(
+    name='daily-report',
+    fire_at=datetime.now() + timedelta(days=1),
+    recurrence='daily',
+    webhook='https://myapp.com/reports'
+)
+</code></pre>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="feature-item">
+                                    <div class="feature-icon">🔧</div>
+                                    <div class="feature-content">
+                                        <h3>MCP Server</h3>
+                                        <p class="body-text">
+                                            Integrate MINOOTS directly into Claude Desktop and other MCP-compatible AI tools.
+                                            Agents can create, query, and manage timers through natural language.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h3>Framework Integrations</h3>
+                            <p class="body-text">
+                                Pre-built integrations for popular AI agent frameworks make it trivial to add
+                                temporal capabilities to your agents.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CTA SECTION -->
+            <section class="section" id="cta" data-theme="magenta">
+                <div class="section-content">
+                    <div class="morph-card reveal" data-animate="scale">
+                        <div class="card-bg-accent"></div>
+                        <h1 style="text-align: center;" data-text="Time is Autonomous">Time is <span class="accent">Autonomous</span></h1>
+                        <p class="body-text large" style="text-align: center; margin-bottom: 50px;">
+                            Join the revolution. Deploy timers that actually work.
+                        </p>
+                        <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                            <a href="https://api-m3waemr5lq-uc.a.run.app" class="btn">Get Started</a>
+                            <a href="https://docs.minoots.dev" class="btn btn-outline">Read Docs</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+
+    <script type="module">
+        // ========== VIB3+ QUANTUM VISUALIZER (Enhanced) ==========
+        class QuantumVisualizer {
+            constructor(canvasId, role, reactivity) {
+                this.canvas = document.getElementById(canvasId);
+                this.role = role;
+                this.reactivity = reactivity;
+
+                this.gl = this.canvas.getContext('webgl2') || this.canvas.getContext('webgl');
+                if (!this.gl) return;
+
+                this.startTime = Date.now();
+                this.scrollProgress = 0;
+                this.params = {
+                    geometry: 1,
+                    gridDensity: 40,
+                    morphFactor: 1.0,
+                    chaos: 0.2,
+                    speed: 1.0,
+                    hue: 0.556,
+                    intensity: 0.5,
+                    saturation: 0.8,
+                    dimension: 3.5,
+                    rot4dXW: 0.0,
+                    rot4dYW: 0.0,
+                    rot4dZW: 0.0,
+                    offsetY: 0.0
+                };
+
+                this.init();
+            }
+
+            init() {
+                this.initShaders();
+                this.initBuffers();
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+            }
+
+            initShaders() {
+                const vertexShader = `
+                    attribute vec2 a_position;
+                    void main() {
+                        gl_Position = vec4(a_position, 0.0, 1.0);
+                    }
+                `;
+
+                const fragmentShader = `
+                    #ifdef GL_FRAGMENT_PRECISION_HIGH
+                        precision highp float;
+                    #else
+                        precision mediump float;
+                    #endif
+
+                    uniform vec2 u_resolution;
+                    uniform float u_time;
+                    uniform float u_geometry;
+                    uniform float u_gridDensity;
+                    uniform float u_chaos;
+                    uniform float u_speed;
+                    uniform float u_hue;
+                    uniform float u_intensity;
+                    uniform float u_rot4dXW;
+                    uniform float u_rot4dYW;
+                    uniform float u_rot4dZW;
+                    uniform float u_roleIntensity;
+                    uniform float u_offsetY;
+                    uniform float u_scrollProgress;
+
+                    mat4 rotateXW(float theta) {
+                        float c = cos(theta);
+                        float s = sin(theta);
+                        return mat4(c, 0.0, 0.0, -s, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, s, 0.0, 0.0, c);
+                    }
+
+                    mat4 rotateYW(float theta) {
+                        float c = cos(theta);
+                        float s = sin(theta);
+                        return mat4(1.0, 0.0, 0.0, 0.0, 0.0, c, 0.0, -s, 0.0, 0.0, 1.0, 0.0, 0.0, s, 0.0, c);
+                    }
+
+                    mat4 rotateZW(float theta) {
+                        float c = cos(theta);
+                        float s = sin(theta);
+                        return mat4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, c, -s, 0.0, 0.0, s, c);
+                    }
+
+                    vec3 project4Dto3D(vec4 p) {
+                        float w = 2.5 / (2.5 + p.w);
+                        return vec3(p.x * w, p.y * w, p.z * w);
+                    }
+
+                    vec3 warpHypersphere(vec3 p) {
+                        float radius = length(p);
+                        float scrollMorph = u_scrollProgress * 0.5;
+                        float w = sin(radius * (1.5 + scrollMorph) + u_time * 0.0008 * u_speed) * 0.6;
+                        vec4 p4d = vec4(p, w);
+                        p4d = rotateXW(u_rot4dXW + scrollMorph * 0.3) * p4d;
+                        p4d = rotateYW(u_rot4dYW + scrollMorph * 0.2) * p4d;
+                        p4d = rotateZW(u_rot4dZW + scrollMorph * 0.4) * p4d;
+                        return project4Dto3D(p4d);
+                    }
+
+                    float hypercubeLattice(vec3 p, float gridSize) {
+                        vec3 grid = fract(p * gridSize);
+                        vec3 edges = min(grid, 1.0 - grid);
+                        float minEdge = min(min(edges.x, edges.y), edges.z);
+                        return 1.0 - smoothstep(0.0, 0.03, minEdge);
+                    }
+
+                    float sphereLattice(vec3 p, float gridSize) {
+                        vec3 cell = fract(p * gridSize) - 0.5;
+                        return 1.0 - smoothstep(0.15, 0.25, length(cell));
+                    }
+
+                    float torusLattice(vec3 p, float gridSize) {
+                        vec3 cell = fract(p * gridSize) - 0.5;
+                        float toroidalDist = length(vec2(length(cell.xy) - 0.3, cell.z));
+                        return 1.0 - smoothstep(0.08, 0.12, toroidalDist);
+                    }
+
+                    float waveLattice(vec3 p, float gridSize) {
+                        float time = u_time * 0.001 * u_speed;
+                        float wave = sin(p.x * gridSize * 2.0 + time * 2.0 + u_scrollProgress) +
+                                   sin(p.y * gridSize * 1.8 + time * 1.5 + u_scrollProgress * 0.8) +
+                                   sin(p.z * gridSize * 2.2 + time * 1.8 + u_scrollProgress * 1.2);
+                        return max(0.0, wave / 3.0);
+                    }
+
+                    float geometryFunction(vec4 p) {
+                        vec3 p3d = project4Dto3D(p);
+                        vec3 warped = warpHypersphere(p3d);
+                        float gridSize = u_gridDensity * 0.08;
+
+                        int geomType = int(mod(u_geometry + u_scrollProgress * 0.1, 8.0));
+
+                        if (geomType == 0) return hypercubeLattice(warped, gridSize);
+                        else if (geomType == 1) return sphereLattice(warped, gridSize);
+                        else if (geomType == 2) return torusLattice(warped, gridSize);
+                        else if (geomType == 3) return waveLattice(warped, gridSize);
+                        else return hypercubeLattice(warped, gridSize);
+                    }
+
+                    vec3 getLayerColor(int layerIndex, float hueShift) {
+                        if (layerIndex == 0) return vec3(0.05, 0.0, 0.2);
+                        else if (layerIndex == 1) return vec3(0.0, 0.3, 0.3);
+                        else if (layerIndex == 2) return mix(vec3(0.0, 1.0, 1.0), vec3(1.0, 0.0, 1.0), hueShift);
+                        else if (layerIndex == 3) return vec3(0.0, 1.0, 1.0);
+                        else return vec3(1.0, 0.0, 1.0);
+                    }
+
+                    void main() {
+                        vec2 uv = (gl_FragCoord.xy - u_resolution.xy * 0.5) / min(u_resolution.x, u_resolution.y);
+                        uv.y += u_offsetY;
+
+                        float timeSpeed = u_time * 0.0001 * u_speed;
+                        vec4 pos = vec4(uv * 3.0, sin(timeSpeed * 3.0), cos(timeSpeed * 2.0));
+
+                        pos = rotateXW(u_rot4dXW) * pos;
+                        pos = rotateYW(u_rot4dYW) * pos;
+                        pos = rotateZW(u_rot4dZW) * pos;
+
+                        float value = geometryFunction(pos);
+                        float noise = sin(pos.x * 7.0) * cos(pos.y * 11.0);
+                        value += noise * u_chaos;
+
+                        float geometryIntensity = 1.0 - clamp(abs(value * 0.8), 0.0, 1.0);
+                        geometryIntensity = pow(geometryIntensity, 1.5);
+                        float finalIntensity = geometryIntensity * u_intensity * (1.0 + u_scrollProgress * 0.2);
+
+                        int layerIndex = u_roleIntensity == 0.4 ? 0 :
+                                       u_roleIntensity == 0.6 ? 1 :
+                                       u_roleIntensity == 1.0 ? 2 :
+                                       u_roleIntensity == 1.3 ? 3 : 4;
+
+                        vec3 layerColor = getLayerColor(layerIndex, u_hue);
+                        vec3 finalColor = layerColor * finalIntensity;
+
+                        float layerAlpha = u_roleIntensity == 1.0 ? 1.0 :
+                                         u_roleIntensity == 1.3 ? 0.8 :
+                                         u_roleIntensity == 1.6 ? 0.3 :
+                                         u_roleIntensity == 0.6 ? 0.4 : 0.6;
+
+                        gl_FragColor = vec4(finalColor, finalIntensity * layerAlpha);
+                    }
+                `;
+
+                this.program = this.createProgram(vertexShader, fragmentShader);
+
+                this.uniforms = {
+                    resolution: this.gl.getUniformLocation(this.program, 'u_resolution'),
+                    time: this.gl.getUniformLocation(this.program, 'u_time'),
+                    geometry: this.gl.getUniformLocation(this.program, 'u_geometry'),
+                    gridDensity: this.gl.getUniformLocation(this.program, 'u_gridDensity'),
+                    chaos: this.gl.getUniformLocation(this.program, 'u_chaos'),
+                    speed: this.gl.getUniformLocation(this.program, 'u_speed'),
+                    hue: this.gl.getUniformLocation(this.program, 'u_hue'),
+                    intensity: this.gl.getUniformLocation(this.program, 'u_intensity'),
+                    rot4dXW: this.gl.getUniformLocation(this.program, 'u_rot4dXW'),
+                    rot4dYW: this.gl.getUniformLocation(this.program, 'u_rot4dYW'),
+                    rot4dZW: this.gl.getUniformLocation(this.program, 'u_rot4dZW'),
+                    roleIntensity: this.gl.getUniformLocation(this.program, 'u_roleIntensity'),
+                    offsetY: this.gl.getUniformLocation(this.program, 'u_offsetY'),
+                    scrollProgress: this.gl.getUniformLocation(this.program, 'u_scrollProgress')
+                };
+            }
+
+            createProgram(vertexSource, fragmentSource) {
+                const vertexShader = this.createShader(this.gl.VERTEX_SHADER, vertexSource);
+                const fragmentShader = this.createShader(this.gl.FRAGMENT_SHADER, fragmentSource);
+
+                const program = this.gl.createProgram();
+                this.gl.attachShader(program, vertexShader);
+                this.gl.attachShader(program, fragmentShader);
+                this.gl.linkProgram(program);
+
+                if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) return null;
+                return program;
+            }
+
+            createShader(type, source) {
+                const shader = this.gl.createShader(type);
+                this.gl.shaderSource(shader, source);
+                this.gl.compileShader(shader);
+
+                if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) return null;
+                return shader;
+            }
+
+            initBuffers() {
+                const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+                this.buffer = this.gl.createBuffer();
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffer);
+                this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
+
+                const positionLocation = this.gl.getAttribLocation(this.program, 'a_position');
+                this.gl.enableVertexAttribArray(positionLocation);
+                this.gl.vertexAttribPointer(positionLocation, 2, this.gl.FLOAT, false, 0, 0);
+            }
+
+            resize() {
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                this.canvas.width = this.canvas.clientWidth * dpr;
+                this.canvas.height = this.canvas.clientHeight * dpr;
+                this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            updateParameters(params) {
+                Object.assign(this.params, params);
+            }
+
+            updateScrollProgress(progress) {
+                this.scrollProgress = progress;
+            }
+
+            render() {
+                if (!this.program) return;
+
+                this.gl.useProgram(this.program);
+                this.gl.clearColor(0, 0, 0, 0);
+                this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+
+                const roleIntensities = {
+                    'background': 0.4,
+                    'shadow': 0.6,
+                    'content': 1.0,
+                    'highlight': 1.3,
+                    'accent': 1.6
+                };
+
+                const time = Date.now() - this.startTime;
+
+                this.gl.uniform2f(this.uniforms.resolution, this.canvas.width, this.canvas.height);
+                this.gl.uniform1f(this.uniforms.time, time);
+                this.gl.uniform1f(this.uniforms.geometry, this.params.geometry);
+                this.gl.uniform1f(this.uniforms.gridDensity, this.params.gridDensity);
+                this.gl.uniform1f(this.uniforms.chaos, this.params.chaos);
+                this.gl.uniform1f(this.uniforms.speed, this.params.speed);
+                this.gl.uniform1f(this.uniforms.hue, this.params.hue);
+                this.gl.uniform1f(this.uniforms.intensity, this.params.intensity);
+                this.gl.uniform1f(this.uniforms.rot4dXW, this.params.rot4dXW);
+                this.gl.uniform1f(this.uniforms.rot4dYW, this.params.rot4dYW);
+                this.gl.uniform1f(this.uniforms.rot4dZW, this.params.rot4dZW);
+                this.gl.uniform1f(this.uniforms.roleIntensity, roleIntensities[this.role] || 1.0);
+                this.gl.uniform1f(this.uniforms.offsetY, this.params.offsetY);
+                this.gl.uniform1f(this.uniforms.scrollProgress, this.scrollProgress);
+
+                this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+            }
+        }
+
+        // ========== SECTION-BASED VISUALIZER PRESETS ==========
+        const SECTION_VIZ_PRESETS = {
+            'cyan': {
+                geometry: 1,
+                gridDensity: 35,
+                chaos: 0.2,
+                speed: 1.0,
+                hue: 0.50, // Cyan
+                intensity: 0.6,
+                rot4dXW: 0.5,
+                rot4dYW: 0.3,
+                rot4dZW: 0.2,
+                // 5X ENHANCEMENTS
+                complementaryHue: 0.08, // Orange (complementary to cyan)
+                vibrancyRange: [0.4, 1.2],
+                accentMoments: [0.3, 0.7], // Progress points for color bursts
+                pulseIntensity: 0.3,
+                colorShiftSpeed: 2.0
+            },
+            'magenta': {
+                geometry: 2,
+                gridDensity: 42,
+                chaos: 0.35,
+                speed: 1.3,
+                hue: 0.83, // Magenta
+                intensity: 0.75,
+                rot4dXW: 1.0,
+                rot4dYW: 0.7,
+                rot4dZW: 0.5,
+                // 5X ENHANCEMENTS
+                complementaryHue: 0.33, // Green (complementary to magenta)
+                vibrancyRange: [0.5, 1.5],
+                accentMoments: [0.2, 0.5, 0.8],
+                pulseIntensity: 0.5,
+                colorShiftSpeed: 1.8
+            },
+            'green': {
+                geometry: 3,
+                gridDensity: 28,
+                chaos: 0.15,
+                speed: 0.8,
+                hue: 0.33, // Green
+                intensity: 0.55,
+                rot4dXW: 0.3,
+                rot4dYW: 0.6,
+                rot4dZW: 0.9,
+                // 5X ENHANCEMENTS
+                complementaryHue: 0.83, // Magenta (complementary to green)
+                vibrancyRange: [0.3, 0.9],
+                accentMoments: [0.4, 0.6],
+                pulseIntensity: 0.2,
+                colorShiftSpeed: 2.5
+            },
+            'purple': {
+                geometry: 4,
+                gridDensity: 48,
+                chaos: 0.45,
+                speed: 1.5,
+                hue: 0.75, // Purple
+                intensity: 0.85,
+                rot4dXW: 1.5,
+                rot4dYW: 1.2,
+                rot4dZW: 0.8,
+                // 5X ENHANCEMENTS
+                complementaryHue: 0.25, // Yellow-green (complementary to purple)
+                vibrancyRange: [0.6, 1.8],
+                accentMoments: [0.15, 0.45, 0.75],
+                pulseIntensity: 0.7,
+                colorShiftSpeed: 1.5
+            },
+            'orange': {
+                geometry: 5,
+                gridDensity: 38,
+                chaos: 0.3,
+                speed: 1.1,
+                hue: 0.08, // Orange
+                intensity: 0.7,
+                rot4dXW: 0.8,
+                rot4dYW: 1.0,
+                rot4dZW: 0.6,
+                // 5X ENHANCEMENTS
+                complementaryHue: 0.50, // Cyan (complementary to orange)
+                vibrancyRange: [0.5, 1.4],
+                accentMoments: [0.25, 0.6],
+                pulseIntensity: 0.4,
+                colorShiftSpeed: 2.2
+            }
+        };
+
+        function applyVisualizerPreset(theme) {
+            const preset = SECTION_VIZ_PRESETS[theme];
+            if (!preset || !window.quantumVisualizers) return;
+
+            window.quantumVisualizers.forEach((viz, i) => {
+                const layerMultiplier = (i + 1) * 0.2;
+                gsap.to(viz.params, {
+                    geometry: preset.geometry,
+                    gridDensity: preset.gridDensity * (0.8 + layerMultiplier * 0.4),
+                    chaos: preset.chaos * (1 + layerMultiplier * 0.3),
+                    speed: preset.speed,
+                    hue: preset.hue,
+                    intensity: preset.intensity * (0.7 + layerMultiplier * 0.3),
+                    rot4dXW: preset.rot4dXW * layerMultiplier,
+                    rot4dYW: preset.rot4dYW * layerMultiplier,
+                    rot4dZW: preset.rot4dZW * layerMultiplier,
+                    duration: 2,
+                    ease: 'power2.inOut'
+                });
+            });
+        }
+
+        // ========== SCROLL CHOREOGRAPHY MAP ==========
+        /*
+         * INTRO SEQUENCE (300vh):
+         * Tick 0-33%:   Title centered, visualizer full screen
+         * Tick 33-66%:  Visualizer contracts from edges into card around title
+         * Tick 66-85%:  Card formed, begins scrolling up
+         * Tick 85-100%: Card exits top, visualizer to background
+         *
+         * SECTION CHOREOGRAPHY (200vh each):
+         * Tick 0-20%:   Element enters from bottom
+         * Tick 20-80%:  Element locked in center, background animates
+         * Tick 80-100%: Element exits to top
+         */
+
+        // ========== EPIC INTRO SEQUENCE ==========
+        function initEpicIntro() {
+            const quantumLayers = document.getElementById('quantum-layers');
+            const introTitle = document.getElementById('intro-title');
+            const formationCard = document.getElementById('formation-card');
+            const introHero = document.getElementById('intro-hero');
+            const introHeroContent = document.getElementById('intro-hero-content');
+
+            // Pin the intro content in center
+            ScrollTrigger.create({
+                trigger: introHero,
+                start: 'top top',
+                end: 'bottom bottom',
+                pin: introHeroContent,
+                pinSpacing: false,
+                onUpdate: (self) => {
+                    const progress = self.progress;
+                    console.log(`Intro progress: ${(progress * 100).toFixed(1)}%`);
+
+                    // Phase 1: Title centered, visualizer full (0-33%)
+                    if (progress < 0.33) {
+                        // Title is visible and centered from start
+                        // Visualizer at full opacity
+                    }
+
+                    // Phase 2: Visualizer contracts into card (33-66%)
+                    else if (progress >= 0.33 && progress < 0.66) {
+                        const contractProgress = (progress - 0.33) / 0.33;
+
+                        // Contract visualizer using scale
+                        const scale = 1 - (contractProgress * 0.5); // Scale from 1 to 0.5
+                        quantumLayers.style.transform = `scale(${scale})`;
+                        quantumLayers.style.opacity = 1 - (contractProgress * 0.3);
+
+                        // Form card around title
+                        formationCard.style.opacity = contractProgress;
+                        formationCard.style.background = `rgba(10, 10, 20, ${0.85 * contractProgress})`;
+                        formationCard.style.backdropFilter = `blur(${30 * contractProgress}px)`;
+                        formationCard.style.border = `2px solid rgba(0, 255, 255, ${0.6 * contractProgress})`;
+                        formationCard.style.borderRadius = `${40 * contractProgress}px`;
+                        formationCard.style.boxShadow = `
+                            0 0 ${80 * contractProgress}px rgba(0, 255, 255, ${0.4 * contractProgress}),
+                            inset 0 0 ${60 * contractProgress}px rgba(0, 255, 255, ${0.1 * contractProgress})
+                        `;
+                    }
+
+                    // Phase 3: Card scrolls up (66-85%)
+                    else if (progress >= 0.66 && progress < 0.85) {
+                        const scrollProgress = (progress - 0.66) / 0.19;
+
+                        // Move card up
+                        const translateY = -100 * scrollProgress; // Move up
+                        introHeroContent.style.transform = `translateY(${translateY}vh)`;
+
+                        // Push visualizer further back
+                        quantumLayers.style.transform = `scale(0.3)`;
+                        quantumLayers.style.opacity = 0.5 * (1 - scrollProgress);
+                    }
+
+                    // Phase 4: Return to normal (85-100%)
+                    else {
+                        const exitProgress = (progress - 0.85) / 0.15;
+
+                        // Card off screen
+                        introHeroContent.style.opacity = 1 - exitProgress;
+
+                        // Visualizer returns to normal
+                        quantumLayers.style.transform = 'scale(1)';
+                        quantumLayers.style.opacity = 1;
+                    }
+                }
+            });
+
+            console.log('🎭 Intro sequence: Title visible from start, visualizer contracts on scroll');
+        }
+
+        // ========== CENTER-LOCK CHOREOGRAPHY ==========
+        function initCenterLockChoreography() {
+            // Apply center-lock to all sections
+            document.querySelectorAll('.section').forEach((section, index) => {
+                const sectionContent = section.querySelector('.section-content');
+                if (!sectionContent) return;
+
+                // Pin each section's content in center
+                ScrollTrigger.create({
+                    trigger: section,
+                    start: 'top top',
+                    end: 'bottom bottom',
+                    pin: sectionContent,
+                    pinSpacing: false,
+                    onUpdate: (self) => {
+                        const progress = self.progress;
+                        console.log(`Section ${index} progress: ${(progress * 100).toFixed(1)}%`);
+
+                        // Entrance (0-20%)
+                        if (progress < 0.2) {
+                            const entranceProgress = progress / 0.2;
+                            sectionContent.style.opacity = entranceProgress;
+                            sectionContent.style.transform = `translateY(${(1 - entranceProgress) * 100}px) scale(${0.8 + (entranceProgress * 0.2)})`;
+                        }
+
+                        // Center-lock (20-80%) - Element stays centered, animations continue
+                        else if (progress >= 0.2 && progress < 0.8) {
+                            const focusProgress = (progress - 0.2) / 0.6;
+                            sectionContent.style.opacity = 1;
+                            sectionContent.style.transform = 'translateY(0) scale(1)';
+
+                            // Subtle breathing animation during focus
+                            const breathe = Math.sin(focusProgress * Math.PI * 4) * 0.02;
+                            sectionContent.style.transform = `translateY(0) scale(${1 + breathe})`;
+                        }
+
+                        // Exit (80-100%)
+                        else {
+                            const exitProgress = (progress - 0.8) / 0.2;
+                            sectionContent.style.opacity = 1 - exitProgress;
+                            sectionContent.style.transform = `translateY(${-exitProgress * 100}px) scale(${1 - (exitProgress * 0.2)})`;
+                        }
+                    },
+                    onEnter: () => {
+                        // Apply theme when section enters
+                        const theme = section.dataset.theme;
+                        if (theme) {
+                            applyVisualizerPreset(theme);
+                            console.log(`📍 Section ${index} (${theme}) locked in center`);
+                        }
+                    }
+                });
+            });
+
+            console.log('🎯 Center-lock choreography applied to all sections');
+        }
+
+        // ========== INTERACTIVE STATE MANAGEMENT ==========
+        function initInteractiveStates() {
+            // Add click/touch states to cards
+            document.querySelectorAll('.morph-card').forEach(card => {
+                card.addEventListener('click', function(e) {
+                    // Don't trigger if clicking expanded content
+                    if (this.classList.contains('expanded')) return;
+
+                    // Toggle active state
+                    this.classList.toggle('active');
+
+                    // Remove active from others
+                    document.querySelectorAll('.morph-card').forEach(other => {
+                        if (other !== this && !other.classList.contains('expanded')) {
+                            other.classList.remove('active');
+                        }
+                    });
+                });
+            });
+
+            // Add hover states to headlines
+            document.querySelectorAll('h1, h2, h3').forEach(headline => {
+                headline.addEventListener('mouseenter', function() {
+                    this.classList.add('active');
+                });
+
+                headline.addEventListener('mouseleave', function() {
+                    this.classList.remove('active');
+                });
+
+                // Click to keep active
+                headline.addEventListener('click', function() {
+                    const isActive = this.classList.contains('active');
+                    // Remove active from all headlines
+                    document.querySelectorAll('h1, h2, h3').forEach(h => h.classList.remove('active'));
+                    // Toggle this one
+                    if (!isActive) {
+                        this.classList.add('active');
+                    }
+                });
+            });
+
+            // Interactive accent text
+            document.querySelectorAll('.accent, .highlight, .glow').forEach(accent => {
+                accent.addEventListener('mouseenter', function() {
+                    gsap.to(this, {
+                        scale: 1.1,
+                        textShadow: `0 0 20px currentColor, 0 0 40px currentColor`,
+                        duration: 0.3
+                    });
+                });
+
+                accent.addEventListener('mouseleave', function() {
+                    gsap.to(this, {
+                        scale: 1,
+                        textShadow: `0 0 0px currentColor`,
+                        duration: 0.3
+                    });
+                });
+            });
+
+            console.log('🎮 Interactive states enabled');
+        }
+
+        // ========== SECTION-AWARE VISUALIZER ==========
+        function initSectionAwareVisualizer() {
+            document.querySelectorAll('.section[data-theme]').forEach(section => {
+                ScrollTrigger.create({
+                    trigger: section,
+                    start: 'top center',
+                    end: 'bottom center',
+                    onEnter: () => {
+                        const theme = section.dataset.theme;
+                        applyVisualizerPreset(theme);
+                        console.log(`🎨 Switched to ${theme} theme`);
+                    },
+                    onEnterBack: () => {
+                        const theme = section.dataset.theme;
+                        applyVisualizerPreset(theme);
+                    }
+                });
+            });
+
+            console.log('🌈 Section-aware visualizer active');
+        }
+
+        // ========== GSAP SCROLL ANIMATIONS ==========
+        function initScrollAnimations() {
+            gsap.registerPlugin(ScrollTrigger);
+
+            // Reveal animations
+            gsap.utils.toArray('.reveal').forEach((elem) => {
+                const animType = elem.dataset.animate || 'fade-up';
+                const delay = parseFloat(elem.dataset.delay || 0);
+
+                let fromVars = { opacity: 0 };
+                let toVars = { opacity: 1, duration: 1.2, delay };
+
+                switch (animType) {
+                    case 'fade-up':
+                        fromVars.y = 60;
+                        toVars.y = 0;
+                        break;
+                    case 'scale':
+                        fromVars.scale = 0.8;
+                        toVars.scale = 1;
+                        break;
+                }
+
+                gsap.fromTo(elem, fromVars, {
+                    ...toVars,
+                    scrollTrigger: {
+                        trigger: elem,
+                        start: 'top 85%',
+                        end: 'bottom 20%',
+                        toggleActions: 'play none none none'
+                    }
+                });
+            });
+
+            // Card hover 3D tilt effect (kept from original)
+            document.querySelectorAll('.morph-card').forEach(card => {
+                card.addEventListener('mousemove', (e) => {
+                    if (card.classList.contains('expanded')) return;
+
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    const rotateX = (y - centerY) / 20;
+                    const rotateY = (centerX - x) / 20;
+
+                    gsap.to(card, {
+                        rotateX,
+                        rotateY,
+                        transformPerspective: 1000,
+                        duration: 0.5,
+                        ease: 'power2.out'
+                    });
+
+                    // Update accent position
+                    const accent = card.querySelector('.card-bg-accent');
+                    if (accent) {
+                        const percentX = (x / rect.width) * 100;
+                        const percentY = (y / rect.height) * 100;
+                        card.style.setProperty('--mouse-x', `${percentX}%`);
+                        card.style.setProperty('--mouse-y', `${percentY}%`);
+                    }
+                });
+
+                card.addEventListener('mouseleave', () => {
+                    if (card.classList.contains('expanded')) return;
+
+                    gsap.to(card, {
+                        rotateX: 0,
+                        rotateY: 0,
+                        duration: 0.5,
+                        ease: 'power2.out'
+                    });
+                });
+            });
+        }
+
+        // ========== EXPANDABLE CARDS ==========
+        function initExpandableCards() {
+            const overlay = document.getElementById('overlay');
+
+            document.querySelectorAll('[data-expandable]').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    // Don't expand if clicking on expanded content
+                    if (e.target.closest('.expanded-content') || card.classList.contains('expanded')) {
+                        return;
+                    }
+
+                    expandCard(card);
+                });
+
+                // Close button
+                const closeBtn = card.querySelector('.card-close');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        collapseCard(card);
+                    });
+                }
+            });
+
+            // Close on overlay click
+            overlay.addEventListener('click', () => {
+                const expandedCard = document.querySelector('.morph-card.expanded');
+                if (expandedCard) {
+                    collapseCard(expandedCard);
+                }
+            });
+
+            // Close on ESC key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    const expandedCard = document.querySelector('.morph-card.expanded');
+                    if (expandedCard) {
+                        collapseCard(expandedCard);
+                    }
+                }
+            });
+
+            function expandCard(card) {
+                // Store original position
+                const rect = card.getBoundingClientRect();
+                card.dataset.originalPosition = JSON.stringify({
+                    top: rect.top,
+                    left: rect.left,
+                    width: rect.width,
+                    height: rect.height
+                });
+
+                // Show overlay
+                overlay.classList.add('active');
+
+                // Animate expansion
+                gsap.to(card, {
+                    duration: 0.6,
+                    ease: 'power3.inOut',
+                    onStart: () => {
+                        card.classList.add('expanded');
+                        // Show expanded content
+                        const expandedContent = card.querySelector('.expanded-content');
+                        if (expandedContent) {
+                            expandedContent.style.display = 'block';
+                            gsap.fromTo(expandedContent,
+                                { opacity: 0, y: 30 },
+                                { opacity: 1, y: 0, duration: 0.6, delay: 0.3 }
+                            );
+                        }
+                    }
+                });
+
+                // Dim visualizer
+                window.quantumVisualizers?.forEach(viz => {
+                    gsap.to(viz.params, {
+                        intensity: viz.params.intensity * 0.3,
+                        duration: 0.6
+                    });
+                });
+            }
+
+            function collapseCard(card) {
+                const expandedContent = card.querySelector('.expanded-content');
+
+                // Hide expanded content first
+                if (expandedContent) {
+                    gsap.to(expandedContent, {
+                        opacity: 0,
+                        y: -30,
+                        duration: 0.3,
+                        onComplete: () => {
+                            expandedContent.style.display = 'none';
+                        }
+                    });
+                }
+
+                // Hide overlay
+                overlay.classList.remove('active');
+
+                // Animate collapse
+                gsap.to(card, {
+                    duration: 0.6,
+                    ease: 'power3.inOut',
+                    onComplete: () => {
+                        card.classList.remove('expanded');
+                        card.scrollTop = 0;
+                    }
+                });
+
+                // Restore visualizer
+                window.quantumVisualizers?.forEach(viz => {
+                    gsap.to(viz.params, {
+                        intensity: viz.params.intensity / 0.3,
+                        duration: 0.6
+                    });
+                });
+            }
+        }
+
+        // ========== SCROLL PROGRESS ==========
+        function initScrollProgress() {
+            const progressBar = document.getElementById('scroll-progress');
+
+            window.addEventListener('scroll', () => {
+                const windowHeight = window.innerHeight;
+                const documentHeight = document.documentElement.scrollHeight;
+                const scrollTop = window.scrollY;
+                const scrollPercent = (scrollTop / (documentHeight - windowHeight)) * 100;
+
+                progressBar.style.width = `${scrollPercent}%`;
+
+                // Update visualizers with scroll progress
+                const normalizedProgress = scrollTop / (documentHeight - windowHeight);
+                window.quantumVisualizers?.forEach((viz, i) => {
+                    viz.updateScrollProgress(normalizedProgress);
+
+                    // Adjust parameters based on scroll
+                    const layerMultiplier = (i + 1) * 0.2;
+                    viz.updateParameters({
+                        rot4dXW: normalizedProgress * layerMultiplier,
+                        rot4dYW: normalizedProgress * layerMultiplier * 0.7,
+                        rot4dZW: normalizedProgress * layerMultiplier * 0.5,
+                        chaos: 0.2 + (normalizedProgress * 0.3),
+                        geometry: 1 + Math.floor(normalizedProgress * 3)
+                    });
+                });
+            });
+        }
+
+        // ========== 5X ENHANCEMENT SYSTEMS ==========
+
+        /**
+         * COLOR MOMENT SYSTEM
+         * Creates dramatic complementary color bursts at specific moments
+         */
+        class ColorMomentSystem {
+            constructor() {
+                this.activeColorShifts = [];
+                this.burstTimelines = [];
+            }
+
+            init(visualizers) {
+                this.visualizers = visualizers;
+                console.log('🎨 Color Moment System initialized');
+            }
+
+            triggerComplementaryBurst(preset, duration = 3, intensity = 1.0) {
+                if (!preset.complementaryHue) return;
+
+                const burstId = Date.now();
+
+                // Create color shift timeline
+                this.visualizers.forEach((viz, i) => {
+                    const originalHue = viz.params.hue;
+                    const layerDelay = i * 0.1;
+
+                    // Burst to complementary color
+                    const timeline = gsap.timeline({
+                        onComplete: () => {
+                            this.burstTimelines = this.burstTimelines.filter(t => t.id !== burstId);
+                        }
+                    });
+
+                    timeline
+                        .to(viz.params, {
+                            hue: preset.complementaryHue,
+                            intensity: viz.params.intensity * (1 + intensity),
+                            chaos: viz.params.chaos * (1 + intensity * 0.5),
+                            duration: duration * 0.3,
+                            delay: layerDelay,
+                            ease: 'power2.out'
+                        })
+                        .to(viz.params, {
+                            hue: originalHue,
+                            intensity: viz.params.intensity,
+                            chaos: viz.params.chaos,
+                            duration: duration * 0.7,
+                            ease: 'power2.inOut'
+                        });
+
+                    this.burstTimelines.push({ id: burstId, timeline });
+                });
+
+                console.log(`💥 Complementary burst: ${preset.hue} → ${preset.complementaryHue}`);
+            }
+
+            triggerColorWave(fromHue, toHue, duration = 4) {
+                // Ripple color change across layers
+                this.visualizers.forEach((viz, i) => {
+                    gsap.to(viz.params, {
+                        hue: toHue,
+                        duration,
+                        delay: i * 0.2,
+                        ease: 'sine.inOut'
+                    });
+                });
+            }
+
+            createRainbowMoment(duration = 6) {
+                // Cycle through rainbow
+                const hues = [0, 0.17, 0.33, 0.50, 0.67, 0.83];
+                let index = 0;
+
+                const interval = setInterval(() => {
+                    this.visualizers.forEach((viz, i) => {
+                        gsap.to(viz.params, {
+                            hue: hues[(index + i) % hues.length],
+                            duration: 1,
+                            ease: 'sine.inOut'
+                        });
+                    });
+                    index++;
+                    if (index >= hues.length * 2) {
+                        clearInterval(interval);
+                    }
+                }, 1000);
+            }
+        }
+
+        /**
+         * VIBRANCY ENGINE
+         * Controls dynamic intensity bursts and vibrancy modulation
+         */
+        class VibrancyEngine {
+            constructor() {
+                this.pulseTimelines = [];
+                this.ambientPulse = null;
+            }
+
+            init(visualizers) {
+                this.visualizers = visualizers;
+                this.startAmbientPulse();
+                console.log('⚡ Vibrancy Engine initialized');
+            }
+
+            startAmbientPulse() {
+                // Subtle continuous pulse
+                this.visualizers.forEach((viz, i) => {
+                    const baseIntensity = viz.params.intensity;
+                    const pulseAmount = 0.1;
+                    const pulseDuration = 4 + i;
+
+                    gsap.to(viz.params, {
+                        intensity: baseIntensity + pulseAmount,
+                        duration: pulseDuration,
+                        yoyo: true,
+                        repeat: -1,
+                        ease: 'sine.inOut'
+                    });
+                });
+            }
+
+            triggerIntensityBurst(multiplier = 2.0, duration = 2) {
+                // Dramatic intensity spike
+                this.visualizers.forEach((viz, i) => {
+                    const originalIntensity = viz.params.intensity;
+                    const originalChaos = viz.params.chaos;
+                    const originalSpeed = viz.params.speed;
+
+                    gsap.timeline()
+                        .to(viz.params, {
+                            intensity: originalIntensity * multiplier,
+                            chaos: originalChaos * multiplier,
+                            speed: originalSpeed * 1.5,
+                            gridDensity: viz.params.gridDensity * 1.3,
+                            duration: duration * 0.2,
+                            delay: i * 0.05,
+                            ease: 'power4.out'
+                        })
+                        .to(viz.params, {
+                            intensity: originalIntensity,
+                            chaos: originalChaos,
+                            speed: originalSpeed,
+                            gridDensity: viz.params.gridDensity,
+                            duration: duration * 0.8,
+                            ease: 'power2.inOut'
+                        });
+                });
+
+                console.log(`⚡ Intensity burst: ${multiplier}x`);
+            }
+
+            modulateVibrancy(minRange, maxRange, duration = 8) {
+                // Slow vibrancy wave
+                this.visualizers.forEach((viz, i) => {
+                    const currentIntensity = viz.params.intensity;
+
+                    gsap.timeline({ repeat: -1, yoyo: true })
+                        .to(viz.params, {
+                            intensity: currentIntensity * maxRange,
+                            duration: duration / 2,
+                            delay: i * 0.3,
+                            ease: 'sine.inOut'
+                        })
+                        .to(viz.params, {
+                            intensity: currentIntensity * minRange,
+                            duration: duration / 2,
+                            ease: 'sine.inOut'
+                        });
+                });
+            }
+
+            createFlickerMoment(flickerCount = 3, speed = 0.1) {
+                // Rapid intensity flicker
+                this.visualizers.forEach((viz, i) => {
+                    const timeline = gsap.timeline();
+                    const baseIntensity = viz.params.intensity;
+
+                    for (let f = 0; f < flickerCount; f++) {
+                        timeline
+                            .to(viz.params, {
+                                intensity: 0,
+                                duration: speed,
+                                delay: i * 0.02,
+                                ease: 'none'
+                            })
+                            .to(viz.params, {
+                                intensity: baseIntensity * 1.5,
+                                duration: speed,
+                                ease: 'none'
+                            });
+                    }
+
+                    timeline.to(viz.params, {
+                        intensity: baseIntensity,
+                        duration: speed * 2,
+                        ease: 'power2.out'
+                    });
+                });
+            }
+        }
+
+        /**
+         * MICRO-INTERACTION LAYER
+         * Subtle details that respond to user interactions
+         */
+        class MicroInteractionLayer {
+            constructor() {
+                this.mousePosition = { x: 0.5, y: 0.5 };
+                this.mouseVelocity = { x: 0, y: 0 };
+                this.lastMousePos = { x: 0, y: 0 };
+            }
+
+            init(visualizers, canvases) {
+                this.visualizers = visualizers;
+                this.canvases = canvases;
+
+                // Track mouse movement
+                document.addEventListener('mousemove', (e) => {
+                    const x = e.clientX / window.innerWidth;
+                    const y = e.clientY / window.innerHeight;
+
+                    this.mouseVelocity.x = x - this.lastMousePos.x;
+                    this.mouseVelocity.y = y - this.lastMousePos.y;
+
+                    this.mousePosition = { x, y };
+                    this.lastMousePos = { x, y };
+
+                    this.onMouseMove();
+                });
+
+                // Track scroll velocity
+                let lastScrollY = window.scrollY;
+                let scrollVelocity = 0;
+
+                window.addEventListener('scroll', () => {
+                    const currentScrollY = window.scrollY;
+                    scrollVelocity = Math.abs(currentScrollY - lastScrollY);
+                    lastScrollY = currentScrollY;
+
+                    this.onScrollVelocity(scrollVelocity);
+                }, { passive: true });
+
+                console.log('🔬 Micro-Interaction Layer initialized');
+            }
+
+            onMouseMove() {
+                // Subtle rotation based on mouse position
+                this.visualizers.forEach((viz, i) => {
+                    const influence = 0.3 / (i + 1); // Less influence on deeper layers
+
+                    gsap.to(viz.params, {
+                        rot4dXW: viz.params.rot4dXW + (this.mousePosition.y - 0.5) * influence,
+                        rot4dYW: viz.params.rot4dYW + (this.mousePosition.x - 0.5) * influence,
+                        duration: 1.5,
+                        ease: 'power1.out'
+                    });
+                });
+
+                // Mask follows mouse subtly
+                const speed = Math.sqrt(
+                    this.mouseVelocity.x ** 2 + this.mouseVelocity.y ** 2
+                );
+
+                if (speed > 0.01) {
+                    this.canvases.forEach((canvas, i) => {
+                        const influence = 5 / (i + 1);
+                        const offsetX = 50 + this.mousePosition.x * influence;
+                        const offsetY = 50 + this.mousePosition.y * influence;
+
+                        gsap.to(canvas, {
+                            '--mask-center-x': `${offsetX}%`,
+                            '--mask-center-y': `${offsetY}%`,
+                            duration: 2,
+                            ease: 'power1.out'
+                        });
+                    });
+                }
+            }
+
+            onScrollVelocity(velocity) {
+                if (velocity > 20) {
+                    // Fast scroll creates chaos spike
+                    const chaosBoost = Math.min(velocity / 100, 0.5);
+
+                    this.visualizers.forEach(viz => {
+                        gsap.to(viz.params, {
+                            chaos: viz.params.chaos + chaosBoost,
+                            duration: 0.3,
+                            ease: 'power2.out',
+                            onComplete: () => {
+                                gsap.to(viz.params, {
+                                    chaos: viz.params.chaos,
+                                    duration: 1.5,
+                                    ease: 'power2.inOut'
+                                });
+                            }
+                        });
+                    });
+                }
+            }
+
+            createClickRipple(x, y) {
+                // Visual ripple from click position
+                const rippleIntensity = 1.5;
+
+                this.visualizers.forEach((viz, i) => {
+                    gsap.timeline()
+                        .to(viz.params, {
+                            intensity: viz.params.intensity * rippleIntensity,
+                            gridDensity: viz.params.gridDensity * 1.2,
+                            duration: 0.2,
+                            delay: i * 0.05,
+                            ease: 'power2.out'
+                        })
+                        .to(viz.params, {
+                            intensity: viz.params.intensity,
+                            gridDensity: viz.params.gridDensity,
+                            duration: 0.8,
+                            ease: 'elastic.out(1, 0.5)'
+                        });
+                });
+            }
+        }
+
+        // ========== TIMELINE CHOREOGRAPHER (ENHANCED) ==========
+        /**
+         * Master choreography system - treats the entire experience as a fluid timeline
+         * where visualizers, masks, cards, and interactions dance together
+         *
+         * 5X ENHANCED with: color moments, vibrancy bursts, micro-interactions
+         */
+        class TimelineChoreographer {
+            constructor() {
+                this.sections = [];
+                this.currentSection = null;
+                this.canvases = [];
+                this.cards = [];
+                this.scrollProgress = 0;
+                this.sectionProgress = 0;
+
+                // 5X ENHANCEMENT SYSTEMS
+                this.colorMoments = new ColorMomentSystem();
+                this.vibrancyEngine = new VibrancyEngine();
+                this.microInteractions = new MicroInteractionLayer();
+
+                this.accentMomentTrackers = new Map(); // Track triggered accent moments
+            }
+
+            init(canvasElements) {
+                this.canvases = canvasElements;
+                this.cards = Array.from(document.querySelectorAll('.morph-card'));
+                this.sections = this.buildSectionTimeline();
+
+                // Initialize base systems
+                this.setupScrollChoreography();
+                this.setupCardReactions();
+                this.setupMaskMorphing();
+
+                // Initialize enhancement systems
+                this.colorMoments.init(window.quantumVisualizers);
+                this.vibrancyEngine.init(window.quantumVisualizers);
+                this.microInteractions.init(window.quantumVisualizers, canvasElements);
+
+                // Setup global click listener for ripples
+                document.addEventListener('click', (e) => {
+                    this.microInteractions.createClickRipple(
+                        e.clientX / window.innerWidth,
+                        e.clientY / window.innerHeight
+                    );
+                });
+
+                console.log('🎬 Timeline Choreographer initialized (5X ENHANCED)');
+                console.log(`📜 ${this.sections.length} sections in timeline`);
+                console.log('🎨 Color Moments, ⚡ Vibrancy Engine, 🔬 Micro-Interactions active');
+            }
+
+            buildSectionTimeline() {
+                const sectionElements = Array.from(document.querySelectorAll('.section[data-theme]'));
+
+                return sectionElements.map((el, index) => {
+                    const theme = el.dataset.theme;
+                    const preset = SECTION_VIZ_PRESETS[theme];
+
+                    return {
+                        element: el,
+                        id: el.id,
+                        index,
+                        theme,
+                        preset,
+                        cards: Array.from(el.querySelectorAll('.morph-card')),
+                        // Each section has unique mask behavior
+                        maskBehavior: this.getSectionMaskBehavior(el.id, theme),
+                        // Each section has unique reactivity
+                        reactivity: this.getSectionReactivity(el.id)
+                    };
+                });
+            }
+
+            getSectionMaskBehavior(sectionId, theme) {
+                const behaviors = {
+                    'hero': {
+                        maskCenterY: '40%', // Top-heavy
+                        maskRadiusX: '100%', // Full width
+                        maskRadiusY: '90%',
+                        maskFeatherStart: '50%',
+                        breathingIntensity: 0.15
+                    },
+                    'overview': {
+                        maskCenterY: '50%',
+                        maskRadiusX: '85%',
+                        maskRadiusY: '85%',
+                        maskFeatherStart: '40%',
+                        breathingIntensity: 0.2
+                    },
+                    'stats': {
+                        maskCenterY: '50%',
+                        maskRadiusX: '75%', // More contained
+                        maskRadiusY: '70%',
+                        maskFeatherStart: '35%',
+                        breathingIntensity: 0.1 // Calmer
+                    },
+                    'architecture': {
+                        maskCenterY: '50%',
+                        maskRadiusX: '90%',
+                        maskRadiusY: '80%',
+                        maskFeatherStart: '45%',
+                        breathingIntensity: 0.25 // More dramatic
+                    },
+                    'use-cases': {
+                        maskCenterY: '55%', // Bottom-heavy
+                        maskRadiusX: '95%',
+                        maskRadiusY: '85%',
+                        maskFeatherStart: '40%',
+                        breathingIntensity: 0.2
+                    },
+                    'integrations': {
+                        maskCenterY: '50%',
+                        maskRadiusX: '80%',
+                        maskRadiusY: '80%',
+                        maskFeatherStart: '35%',
+                        breathingIntensity: 0.15
+                    },
+                    'cta': {
+                        maskCenterY: '60%', // Bottom-focused
+                        maskRadiusX: '70%', // More intimate
+                        maskRadiusY: '65%',
+                        maskFeatherStart: '30%',
+                        breathingIntensity: 0.3 // Most dramatic
+                    }
+                };
+
+                return behaviors[sectionId] || behaviors['overview'];
+            }
+
+            getSectionReactivity(sectionId) {
+                const reactivity = {
+                    'hero': { cardHover: 1.5, cardExpand: 2.0, intensity: 1.2 },
+                    'overview': { cardHover: 1.3, cardExpand: 1.8, intensity: 1.0 },
+                    'stats': { cardHover: 1.1, cardExpand: 1.3, intensity: 0.8 },
+                    'architecture': { cardHover: 1.4, cardExpand: 2.0, intensity: 1.1 },
+                    'use-cases': { cardHover: 1.3, cardExpand: 1.7, intensity: 1.0 },
+                    'integrations': { cardHover: 1.2, cardExpand: 1.6, intensity: 0.9 },
+                    'cta': { cardHover: 1.6, cardExpand: 2.5, intensity: 1.3 }
+                };
+
+                return reactivity[sectionId] || reactivity['overview'];
+            }
+
+            setupScrollChoreography() {
+                this.sections.forEach((section, index) => {
+                    const trigger = ScrollTrigger.create({
+                        trigger: section.element,
+                        start: 'top center',
+                        end: 'bottom center',
+                        onEnter: () => this.enterSection(section, 'forward'),
+                        onEnterBack: () => this.enterSection(section, 'backward'),
+                        onLeave: () => this.leaveSection(section, 'forward'),
+                        onLeaveBack: () => this.leaveSection(section, 'backward'),
+                        onUpdate: (self) => this.updateSectionProgress(section, self.progress)
+                    });
+
+                    section.trigger = trigger;
+                });
+            }
+
+            enterSection(section, direction) {
+                this.currentSection = section;
+                console.log(`🎬 Enter ${section.id} (${section.theme}) - ${direction}`);
+
+                // Fluid transition to section preset
+                this.morphToPreset(section.preset, section.theme);
+
+                // Morph masks to section behavior
+                this.morphMasks(section.maskBehavior);
+
+                // Update card reactivity
+                this.updateCardReactivity(section.reactivity);
+
+                // 5X ENHANCEMENT: Trigger entry moment
+                if (section.preset) {
+                    // Intensity burst on section enter
+                    const burstIntensity = section.preset.pulseIntensity || 0.3;
+                    this.vibrancyEngine.triggerIntensityBurst(1 + burstIntensity, 2.5);
+
+                    // Start vibrancy modulation for this section
+                    if (section.preset.vibrancyRange) {
+                        this.vibrancyEngine.modulateVibrancy(
+                            section.preset.vibrancyRange[0],
+                            section.preset.vibrancyRange[1],
+                            10
+                        );
+                    }
+                }
+
+                // Reset accent moment tracker for this section
+                this.accentMomentTrackers.set(section.id, new Set());
+            }
+
+            leaveSection(section, direction) {
+                console.log(`👋 Leave ${section.id} - ${direction}`);
+
+                // 5X ENHANCEMENT: Transition moment
+                if (direction === 'forward' && section.preset) {
+                    // Color flash as we leave
+                    this.vibrancyEngine.createFlickerMoment(2, 0.15);
+                }
+            }
+
+            updateCardReactivity(reactivity) {
+                // Store current reactivity for this section
+                this.currentReactivity = reactivity;
+            }
+
+            updateSectionProgress(section, progress) {
+                if (section !== this.currentSection) return;
+
+                this.sectionProgress = progress;
+
+                // Micro-adjustments based on progress through section
+                // Creates subtle evolution as you scroll through each section
+                if (window.quantumVisualizers) {
+                    window.quantumVisualizers.forEach((viz, i) => {
+                        // Subtle chaos variation
+                        const chaosVariation = Math.sin(progress * Math.PI) * 0.1;
+                        viz.updateParameters({
+                            chaos: viz.params.chaos + chaosVariation
+                        });
+                    });
+                }
+
+                // 5X ENHANCEMENT: Trigger accent moments at specific progress points
+                if (section.preset && section.preset.accentMoments) {
+                    const tracker = this.accentMomentTrackers.get(section.id);
+                    if (!tracker) return;
+
+                    section.preset.accentMoments.forEach((momentProgress, index) => {
+                        const momentKey = `moment-${index}`;
+
+                        // Check if we've crossed this moment threshold
+                        if (progress >= momentProgress && !tracker.has(momentKey)) {
+                            tracker.add(momentKey);
+
+                            // Trigger complementary color burst
+                            this.colorMoments.triggerComplementaryBurst(
+                                section.preset,
+                                3,
+                                section.preset.pulseIntensity || 0.5
+                            );
+
+                            console.log(`💥 Accent moment ${index + 1} at ${(momentProgress * 100).toFixed(0)}% of ${section.id}`);
+                        }
+                    });
+                }
+            }
+
+            morphToPreset(preset, themeName) {
+                if (!preset || !window.quantumVisualizers) return;
+
+                window.quantumVisualizers.forEach((viz, i) => {
+                    const layerMultiplier = (i + 1) * 0.2;
+
+                    gsap.to(viz.params, {
+                        geometry: preset.geometry,
+                        gridDensity: preset.gridDensity * (0.8 + layerMultiplier * 0.4),
+                        chaos: preset.chaos * (1 + layerMultiplier * 0.3),
+                        speed: preset.speed,
+                        hue: preset.hue,
+                        intensity: preset.intensity * (0.7 + layerMultiplier * 0.3),
+                        rot4dXW: preset.rot4dXW * layerMultiplier,
+                        rot4dYW: preset.rot4dYW * layerMultiplier,
+                        rot4dZW: preset.rot4dZW * layerMultiplier,
+                        duration: 3, // Longer, more fluid transitions
+                        ease: 'power1.inOut'
+                    });
+                });
+
+                console.log(`🎨 Morphed to ${themeName} preset`);
+            }
+
+            morphMasks(maskBehavior) {
+                this.canvases.forEach((canvas, i) => {
+                    if (!canvas) return;
+
+                    // Layer-specific variations
+                    const layerScale = 1 + (i * 0.05);
+
+                    gsap.to(canvas.style, {
+                        '--mask-center-y': maskBehavior.maskCenterY,
+                        '--mask-radius-x': maskBehavior.maskRadiusX,
+                        '--mask-radius-y': maskBehavior.maskRadiusY,
+                        '--mask-feather-start': maskBehavior.maskFeatherStart,
+                        duration: 2.5,
+                        ease: 'power2.inOut'
+                    });
+                });
+            }
+
+            setupCardReactions() {
+                this.cards.forEach(card => {
+                    // Card hover boosts visualizer
+                    card.addEventListener('mouseenter', () => {
+                        if (!this.currentSection) return;
+
+                        const boost = this.currentSection.reactivity.cardHover;
+                        this.boostVisualizer(boost, 0.4);
+                    });
+
+                    card.addEventListener('mouseleave', () => {
+                        this.resetVisualizerBoost(0.6);
+                    });
+
+                    // Track card expansion for dramatic visualizer dimming
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach(mutation => {
+                            if (mutation.attributeName === 'class') {
+                                if (card.classList.contains('expanded')) {
+                                    this.onCardExpand(card);
+                                } else if (mutation.oldValue?.includes('expanded')) {
+                                    this.onCardCollapse(card);
+                                }
+                            }
+                        });
+                    });
+
+                    observer.observe(card, {
+                        attributes: true,
+                        attributeOldValue: true,
+                        attributeFilter: ['class']
+                    });
+                });
+            }
+
+            setupMaskMorphing() {
+                // Continuous organic breathing animation using GSAP
+                // CSS custom properties CAN'T be animated via @keyframes
+                // so we use GSAP timeline for smooth breathing effect
+
+                this.canvases.forEach((canvas, i) => {
+                    if (!canvas) return;
+
+                    // Get base values for this layer from COMPUTED styles (not inline)
+                    const computedStyle = window.getComputedStyle(canvas);
+                    const baseRadiusX = computedStyle.getPropertyValue('--mask-radius-x').trim() || '85%';
+                    const baseRadiusY = computedStyle.getPropertyValue('--mask-radius-y').trim() || '80%';
+                    const baseFeather = computedStyle.getPropertyValue('--mask-feather-start').trim() || '40%';
+
+                    // Parse percentages
+                    const radiusXNum = parseFloat(baseRadiusX);
+                    const radiusYNum = parseFloat(baseRadiusY);
+                    const featherNum = parseFloat(baseFeather);
+
+                    // Stagger the breathing across layers for depth
+                    const delay = i * 0.5;
+                    const duration = 8 + i; // Varying durations create organic feel
+
+                    // Create breathing timeline for this canvas
+                    const breatheTimeline = gsap.timeline({
+                        repeat: -1,
+                        yoyo: true,
+                        delay
+                    });
+
+                    breatheTimeline
+                        .to(canvas, {
+                            '--mask-radius-x': `${radiusXNum + 5}%`,
+                            '--mask-radius-y': `${radiusYNum - 5}%`,
+                            '--mask-feather-start': `${featherNum + 5}%`,
+                            duration: duration / 4,
+                            ease: 'sine.inOut'
+                        })
+                        .to(canvas, {
+                            '--mask-radius-x': `${radiusXNum - 5}%`,
+                            '--mask-radius-y': `${radiusYNum + 5}%`,
+                            '--mask-feather-start': `${featherNum - 5}%`,
+                            duration: duration / 4,
+                            ease: 'sine.inOut'
+                        })
+                        .to(canvas, {
+                            '--mask-radius-x': `${radiusXNum + 3}%`,
+                            '--mask-radius-y': `${radiusYNum - 2}%`,
+                            duration: duration / 4,
+                            ease: 'sine.inOut'
+                        })
+                        .to(canvas, {
+                            '--mask-radius-x': baseRadiusX,
+                            '--mask-radius-y': baseRadiusY,
+                            '--mask-feather-start': baseFeather,
+                            duration: duration / 4,
+                            ease: 'sine.inOut'
+                        });
+                });
+
+                console.log('🌊 Organic mask breathing initialized via GSAP');
+            }
+
+            boostVisualizer(multiplier, duration = 0.3) {
+                window.quantumVisualizers?.forEach(viz => {
+                    gsap.to(viz.params, {
+                        intensity: viz.params.intensity * multiplier,
+                        chaos: viz.params.chaos * multiplier,
+                        duration,
+                        ease: 'power2.out'
+                    });
+                });
+            }
+
+            resetVisualizerBoost(duration = 0.5) {
+                if (!this.currentSection) return;
+
+                // Return to section's baseline
+                this.morphToPreset(this.currentSection.preset, this.currentSection.theme);
+            }
+
+            onCardExpand(card) {
+                if (!this.currentSection) return;
+
+                const expandMultiplier = this.currentSection.reactivity.cardExpand;
+
+                // 5X ENHANCEMENT: Flicker moment on expand
+                this.vibrancyEngine.createFlickerMoment(2, 0.12);
+
+                // Wait for flicker to complete, then dim
+                setTimeout(() => {
+                    // Dramatic dim of visualizer
+                    window.quantumVisualizers?.forEach(viz => {
+                        gsap.to(viz.params, {
+                            intensity: viz.params.intensity * 0.2, // Much dimmer
+                            speed: viz.params.speed * 0.5, // Slower
+                            chaos: viz.params.chaos * 0.6,
+                            duration: 0.6,
+                            ease: 'power3.out'
+                        });
+                    });
+                }, 250);
+
+                // Mask morphs to focus on card center
+                const rect = card.getBoundingClientRect();
+                const centerY = ((rect.top + rect.height / 2) / window.innerHeight * 100).toFixed(0) + '%';
+
+                this.canvases.forEach(canvas => {
+                    if (!canvas) return;
+                    gsap.to(canvas.style, {
+                        '--mask-center-y': centerY,
+                        '--mask-radius-x': '60%',
+                        '--mask-radius-y': '50%',
+                        duration: 0.6,
+                        ease: 'power3.out'
+                    });
+                });
+
+                console.log(`🎯 Card expanded - visualizer focused with flicker`);
+            }
+
+            onCardCollapse(card) {
+                // Return to section baseline
+                if (!this.currentSection) return;
+
+                // 5X ENHANCEMENT: Intensity burst on collapse
+                if (this.currentSection.preset) {
+                    this.vibrancyEngine.triggerIntensityBurst(1.5, 1.5);
+
+                    // Brief complementary color flash
+                    setTimeout(() => {
+                        this.colorMoments.triggerComplementaryBurst(
+                            this.currentSection.preset,
+                            2,
+                            0.6
+                        );
+                    }, 200);
+                }
+
+                this.morphToPreset(this.currentSection.preset, this.currentSection.theme);
+                this.morphMasks(this.currentSection.maskBehavior);
+
+                console.log(`🎯 Card collapsed - visualizer burst & reset`);
+            }
+        }
+
+        // ========== NEGATIVE SPACE CHOREOGRAPHER ==========
+        /**
+         * Dynamically carves out space around cards using organic mask compositing
+         * Creates the "negative space" effect where visualizers fill space AROUND cards
+         */
+        class NegativeSpaceChoreographer {
+            constructor() {
+                this.canvases = [];
+                this.cards = [];
+                this.updateQueued = false;
+                this.enabled = true;
+            }
+
+            init(canvasElements) {
+                this.canvases = canvasElements;
+                this.cards = Array.from(document.querySelectorAll('.morph-card'));
+
+                // Track card position changes
+                this.observeCards();
+
+                // Update on scroll with throttling
+                window.addEventListener('scroll', () => {
+                    if (!this.updateQueued && this.enabled) {
+                        this.updateQueued = true;
+                        requestAnimationFrame(() => {
+                            this.updateMasks();
+                            this.updateQueued = false;
+                        });
+                    }
+                }, { passive: true });
+
+                // Initial update
+                this.updateMasks();
+
+                console.log('🎭 Negative Space Choreographer initialized');
+            }
+
+            observeCards() {
+                // Watch for card expansion/collapse
+                const observer = new MutationObserver(() => {
+                    this.updateMasks();
+                });
+
+                this.cards.forEach(card => {
+                    observer.observe(card, {
+                        attributes: true,
+                        attributeFilter: ['class']
+                    });
+                });
+            }
+
+            updateMasks() {
+                if (!this.enabled || this.cards.length === 0) return;
+
+                const viewport = {
+                    width: window.innerWidth,
+                    height: window.innerHeight
+                };
+
+                // Create cutout gradients for each visible card
+                const cutouts = this.cards
+                    .map(card => {
+                        const rect = card.getBoundingClientRect();
+
+                        // Only process cards in viewport
+                        if (rect.bottom < 0 || rect.top > viewport.height) {
+                            return null;
+                        }
+
+                        // Calculate card center in viewport percentage
+                        const centerX = ((rect.left + rect.width / 2) / viewport.width * 100).toFixed(2);
+                        const centerY = ((rect.top + rect.height / 2) / viewport.height * 100).toFixed(2);
+
+                        // Calculate radii with organic padding
+                        const radiusX = ((rect.width / viewport.width) * 60).toFixed(2);  // 60% of card width
+                        const radiusY = ((rect.height / viewport.height) * 60).toFixed(2); // 60% of card height
+
+                        // Create radial gradient that is TRANSPARENT in center (card area)
+                        // and BLACK outside (visualizer area)
+                        return `radial-gradient(ellipse ${radiusX}% ${radiusY}% at ${centerX}% ${centerY}%,
+                            transparent 0%,
+                            transparent 40%,
+                            black 80%,
+                            black 100%)`;
+                    })
+                    .filter(cutout => cutout !== null);
+
+                // Apply composite mask to each canvas
+                this.canvases.forEach((canvas, i) => {
+                    if (!canvas) return;
+
+                    // Layer-specific expansion (background layers have larger cutouts)
+                    const layerMultiplier = 1 + (i * 0.1);
+
+                    if (cutouts.length > 0) {
+                        // Combine base organic mask with card cutouts
+                        const baseMask = canvas.style.getPropertyValue('--mask-radius-x') || '85%';
+                        const baseMaskY = canvas.style.getPropertyValue('--mask-radius-y') || '80%';
+
+                        // Create layered mask: base organic + card cutouts
+                        const masks = [
+                            // Base organic radial gradient
+                            `radial-gradient(ellipse ${baseMask} ${baseMaskY} at 50% 50%,
+                                black 0%,
+                                black 40%,
+                                transparent 100%)`,
+                            // Card cutouts
+                            ...cutouts
+                        ];
+
+                        canvas.style.maskImage = masks.join(', ');
+                        canvas.style.webkitMaskImage = masks.join(', ');
+
+                        // Composite mode: intersect all masks
+                        canvas.style.maskComposite = 'intersect';
+                        canvas.style.webkitMaskComposite = 'source-in';
+                    }
+                });
+            }
+
+            disable() {
+                this.enabled = false;
+                // Reset to base masks
+                this.canvases.forEach(canvas => {
+                    if (!canvas) return;
+                    canvas.style.maskImage = '';
+                    canvas.style.webkitMaskImage = '';
+                });
+            }
+
+            enable() {
+                this.enabled = true;
+                this.updateMasks();
+            }
+        }
+
+        // ========== INITIALIZATION ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize Quantum Visualizers
+            const layers = [
+                { id: 'quantum-background', role: 'background', reactivity: 0.4 },
+                { id: 'quantum-shadow', role: 'shadow', reactivity: 0.6 },
+                { id: 'quantum-content', role: 'content', reactivity: 1.0 },
+                { id: 'quantum-highlight', role: 'highlight', reactivity: 1.3 },
+                { id: 'quantum-accent', role: 'accent', reactivity: 1.6 }
+            ];
+
+            window.quantumVisualizers = layers.map(layer => {
+                const viz = new QuantumVisualizer(layer.id, layer.role, layer.reactivity);
+                console.log(`✅ ${layer.role} visualizer created`);
+                return viz;
+            }).filter(viz => viz.gl);
+
+            function renderLoop() {
+                window.quantumVisualizers.forEach(viz => viz.render());
+                requestAnimationFrame(renderLoop);
+            }
+            renderLoop();
+
+            // Initialize all animation systems
+            initEpicIntro();
+            initCenterLockChoreography();
+            initScrollAnimations(); // Card hover effects
+            initExpandableCards();
+            initScrollProgress();
+            initInteractiveStates();
+
+            // Initialize Timeline Choreographer - master coordination system
+            const canvasElements = [
+                document.getElementById('quantum-background'),
+                document.getElementById('quantum-shadow'),
+                document.getElementById('quantum-content'),
+                document.getElementById('quantum-highlight'),
+                document.getElementById('quantum-accent')
+            ];
+            window.timelineChoreographer = new TimelineChoreographer();
+            window.timelineChoreographer.init(canvasElements);
+
+            console.log('🚀 MINOOTS VIB3+ Experience Ready');
+            console.log('🎬 Timeline Choreographer: Fluid section-based morphing');
+            console.log('🎭 Epic intro: Title visible from start, visualizer contracts');
+            console.log('🎯 Center-lock choreography: All sections lock in focus');
+            console.log('📦 Expandable cards enabled');
+            console.log('📊 Scroll progress tracking active');
+            console.log('🎮 Interactive states enabled');
+            console.log('🌈 Background animates continuously');
+            console.log('🎨 Organic masks: Radial gradients morphing per section');
+            console.log('🔮 Card reactions: Hover boosts, expand dims, section-aware');
+        });
+    </script>
+</body>
+</html>
+
+<!--
+🌟 A Paul Phillips Manifestation
+Paul@clearseassolutions.com | Parserator.com
+© 2025 Clear Seas Solutions LLC
+-->

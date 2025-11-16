@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MINOOTS Web Catalog - All Branch Builds</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        h1 {
+            font-size: 3.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(45deg, #fff, #a8edea);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin-top: 10px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .filter-btn {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .search-box {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto 30px;
+            padding: 15px 25px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            color: #fff;
+            font-size: 1.1em;
+            text-align: center;
+        }
+
+        .search-box::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .builds-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .build-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .build-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .build-card:hover::before {
+            left: 100%;
+        }
+
+        .build-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .build-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .build-repo {
+            display: inline-block;
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .repo-chill {
+            background: rgba(102, 126, 234, 0.5);
+        }
+
+        .repo-web {
+            background: rgba(118, 75, 162, 0.5);
+        }
+
+        .build-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        .build-branch {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .build-description {
+            font-size: 0.95em;
+            line-height: 1.5;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+
+        .build-meta {
+            font-size: 0.85em;
+            opacity: 0.7;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .launch-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 25px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .launch-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .signature {
+            text-align: center;
+            margin-top: 60px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .signature h2 {
+            font-size: 2em;
+            margin-bottom: 15px;
+        }
+
+        .signature p {
+            font-size: 1.1em;
+            opacity: 0.9;
+            margin: 10px 0;
+        }
+
+        .signature a {
+            color: #a8edea;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .signature a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5em;
+            }
+
+            .builds-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                gap: 20px;
+            }
+
+            .stat-number {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌟 MINOOTS Web Catalog</h1>
+            <p class="subtitle">All Branch Builds from Minoot-web-chill & minoots-web</p>
+            <div class="stats">
+                <div class="stat">
+                    <span class="stat-number" id="total-builds">20</span>
+                    <span class="stat-label">Total Builds</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number" id="chill-count">12</span>
+                    <span class="stat-label">Minoot-web-chill</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number" id="web-count">8</span>
+                    <span class="stat-label">minoots-web</span>
+                </div>
+            </div>
+        </header>
+
+        <input type="text" class="search-box" id="search" placeholder="🔍 Search builds by name, branch, or description...">
+
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">All Builds</button>
+            <button class="filter-btn" data-filter="chill">Minoot-web-chill</button>
+            <button class="filter-btn" data-filter="web">minoots-web</button>
+            <button class="filter-btn" data-filter="claude">Claude Branches</button>
+            <button class="filter-btn" data-filter="feat">Feature Branches</button>
+            <button class="filter-btn" data-filter="main">Main Branches</button>
+        </div>
+
+        <div class="builds-grid" id="builds-grid">
+            <!-- Builds will be dynamically inserted here -->
+        </div>
+
+        <div class="signature">
+            <h2>🌟 A Paul Phillips Manifestation</h2>
+            <p><strong>Send Love, Hate, or Opportunity to:</strong> <a href="mailto:Paul@clearseassolutions.com">Paul@clearseassolutions.com</a></p>
+            <p><strong>Join The Exoditical Moral Architecture Movement today:</strong> <a href="https://parserator.com" target="_blank">Parserator.com</a></p>
+            <p style="font-style: italic; margin-top: 20px;">"The Revolution Will Not be in a Structured Format"</p>
+            <p style="margin-top: 20px; opacity: 0.8;">© 2025 Paul Phillips - Clear Seas Solutions LLC</p>
+            <p style="opacity: 0.7;">All Rights Reserved - Proprietary Technology</p>
+        </div>
+    </div>
+
+    <script>
+        const builds = [
+            // Minoot-web-chill builds
+            {
+                repo: 'chill',
+                branch: '2025-11-13/22-40-19refactor-site-for-elegance-and-smooth-flowcodex',
+                title: 'Elegant Flow Refactor (Nov 13)',
+                description: 'Refactored site architecture for enhanced elegance and smooth user flow. Focus on improved navigation and visual transitions.',
+                folder: 'chill-2025-11-13_22-40-19refactor-site-for-elegance-and-smooth-flowcodex',
+                category: 'refactor'
+            },
+            {
+                repo: 'chill',
+                branch: '2025-11-14/00-04-04refactor-site-for-elegance-and-smooth-flowcodex',
+                title: 'Elegant Flow Refactor v2 (Nov 14)',
+                description: 'Updated version of the elegant flow refactor with additional refinements and optimizations.',
+                folder: 'chill-2025-11-14_00-04-04refactor-site-for-elegance-and-smooth-flowcodex',
+                category: 'refactor'
+            },
+            {
+                repo: 'chill',
+                branch: 'claude/add-document-content-011CUqLZurCg6yPMJZNqgvsw',
+                title: 'Document Content Addition',
+                description: 'Enhanced documentation and content structure. Comprehensive content management system integration.',
+                folder: 'chill-claude_add-document-content-011CUqLZurCg6yPMJZNqgvsw',
+                category: 'claude'
+            },
+            {
+                repo: 'chill',
+                branch: 'claude/consolidate-prs-015HJ5q5t18aRMkU3XE41yTP',
+                title: 'PR Consolidation',
+                description: 'Consolidated multiple pull requests with unified improvements and bug fixes.',
+                folder: 'chill-claude_consolidate-prs-015HJ5q5t18aRMkU3XE41yTP',
+                category: 'claude'
+            },
+            {
+                repo: 'chill',
+                branch: 'claude/fluid-morphing-scroll-011CV2FzWrFmUB2XJF56admk',
+                title: 'Fluid Morphing Scroll System',
+                description: 'Revolutionary fluid morphing scroll animations with seamless transitions between sections.',
+                folder: 'chill-claude_fluid-morphing-scroll-011CV2FzWrFmUB2XJF56admk',
+                category: 'claude'
+            },
+            {
+                repo: 'chill',
+                branch: 'claude/improve-emergent-unity-systems-011CV3CJ7mUvMszmVXcQyWpA',
+                title: 'Emergent Unity Systems',
+                description: 'Advanced emergent unity systems with cohesive design patterns and integrated components.',
+                folder: 'chill-claude_improve-emergent-unity-systems-011CV3CJ7mUvMszmVXcQyWpA',
+                category: 'claude'
+            },
+            {
+                repo: 'chill',
+                branch: 'claude/minoots-horology-platform-011CV335QW95gwVJbJGpiAwa',
+                title: 'MINOOTS Horology Platform',
+                description: 'Complete horology platform integration with timer systems and time-based features.',
+                folder: 'chill-claude_minoots-horology-platform-011CV335QW95gwVJbJGpiAwa',
+                category: 'claude'
+            },
+            {
+                repo: 'chill',
+                branch: 'claude/qode-catalog-review-019YPbRyLNyQk2DF2Tm8nmFb',
+                title: 'Qode Catalog Review',
+                description: 'Comprehensive catalog review and optimization with enhanced browsing experience.',
+                folder: 'chill-claude_qode-catalog-review-019YPbRyLNyQk2DF2Tm8nmFb',
+                category: 'claude'
+            },
+            {
+                repo: 'chill',
+                branch: 'claude/redesign-website-colors-011CV2htELSeoY58VdPMGEwa',
+                title: 'Website Color Redesign',
+                description: 'Complete color scheme redesign with modern palette and improved accessibility.',
+                folder: 'chill-claude_redesign-website-colors-011CV2htELSeoY58VdPMGEwa',
+                category: 'claude'
+            },
+            {
+                repo: 'chill',
+                branch: 'claude/visualizer-system-behavior-011CV64nBPshoQD19N3CRTCp',
+                title: 'Visualizer System Behavior',
+                description: 'Enhanced visualizer system with optimized rendering and interactive behaviors.',
+                folder: 'chill-claude_visualizer-system-behavior-011CV64nBPshoQD19N3CRTCp',
+                category: 'claude'
+            },
+            {
+                repo: 'chill',
+                branch: 'feat/simone-scroll-animation-overhaul',
+                title: 'Simone Scroll Animation Overhaul',
+                description: 'Major scroll animation overhaul inspired by Simone design patterns. Smooth, professional animations.',
+                folder: 'chill-feat_simone-scroll-animation-overhaul',
+                category: 'feat'
+            },
+            {
+                repo: 'chill',
+                branch: 'main',
+                title: 'Main Branch (Chill)',
+                description: 'Production-ready main branch from Minoot-web-chill repository.',
+                folder: 'chill-main',
+                category: 'main'
+            },
+
+            // minoots-web builds
+            {
+                repo: 'web',
+                branch: 'claude/add-document-content-011CUqLZurCg6yPMJZNqgvsw',
+                title: 'Document Content Addition (Web)',
+                description: 'Enhanced documentation and content structure for minoots-web. Alternative implementation.',
+                folder: 'web-claude_add-document-content-011CUqLZurCg6yPMJZNqgvsw',
+                category: 'claude'
+            },
+            {
+                repo: 'web',
+                branch: 'claude/fluid-morphing-scroll-011CV2FzWrFmUB2XJF56admk',
+                title: 'Fluid Morphing Scroll (Web)',
+                description: 'Fluid morphing scroll system for minoots-web. Compare with chill version.',
+                folder: 'web-claude_fluid-morphing-scroll-011CV2FzWrFmUB2XJF56admk',
+                category: 'claude'
+            },
+            {
+                repo: 'web',
+                branch: 'claude/improve-emergent-unity-systems-011CV3CJ7mUvMszmVXcQyWpA',
+                title: 'Emergent Unity Systems (Web)',
+                description: 'Emergent unity systems implementation for minoots-web. Different approach from chill.',
+                folder: 'web-claude_improve-emergent-unity-systems-011CV3CJ7mUvMszmVXcQyWpA',
+                category: 'claude'
+            },
+            {
+                repo: 'web',
+                branch: 'claude/minoots-horology-platform-011CV335QW95gwVJbJGpiAwa',
+                title: 'MINOOTS Horology Platform (Web)',
+                description: 'Horology platform variant for minoots-web repository.',
+                folder: 'web-claude_minoots-horology-platform-011CV335QW95gwVJbJGpiAwa',
+                category: 'claude'
+            },
+            {
+                repo: 'web',
+                branch: 'claude/redesign-website-colors-011CV2htELSeoY58VdPMGEwa',
+                title: 'Website Color Redesign (Web)',
+                description: 'Color redesign variant from minoots-web. Compare color schemes with chill version.',
+                folder: 'web-claude_redesign-website-colors-011CV2htELSeoY58VdPMGEwa',
+                category: 'claude'
+            },
+            {
+                repo: 'web',
+                branch: 'claude/visualizer-system-behavior-011CV64nBPshoQD19N3CRTCp',
+                title: 'Visualizer System Behavior (Web)',
+                description: 'Visualizer system implementation from minoots-web. Alternative visualization approach.',
+                folder: 'web-claude_visualizer-system-behavior-011CV64nBPshoQD19N3CRTCp',
+                category: 'claude'
+            },
+            {
+                repo: 'web',
+                branch: 'feat/simone-scroll-animation-overhaul',
+                title: 'Simone Scroll Animation (Web)',
+                description: 'Simone-inspired scroll animations for minoots-web. Different implementation from chill.',
+                folder: 'web-feat_simone-scroll-animation-overhaul',
+                category: 'feat'
+            },
+            {
+                repo: 'web',
+                branch: 'main',
+                title: 'Main Branch (Web)',
+                description: 'Production-ready main branch from minoots-web repository.',
+                folder: 'web-main',
+                category: 'main'
+            }
+        ];
+
+        const buildsGrid = document.getElementById('builds-grid');
+        const searchBox = document.getElementById('search');
+        const filterBtns = document.querySelectorAll('.filter-btn');
+
+        let currentFilter = 'all';
+        let currentSearch = '';
+
+        function renderBuilds() {
+            buildsGrid.innerHTML = '';
+
+            const filtered = builds.filter(build => {
+                // Filter by category
+                if (currentFilter !== 'all') {
+                    if (currentFilter === 'chill' && build.repo !== 'chill') return false;
+                    if (currentFilter === 'web' && build.repo !== 'web') return false;
+                    if (currentFilter !== 'chill' && currentFilter !== 'web' && build.category !== currentFilter) return false;
+                }
+
+                // Filter by search
+                if (currentSearch) {
+                    const searchLower = currentSearch.toLowerCase();
+                    return build.title.toLowerCase().includes(searchLower) ||
+                           build.branch.toLowerCase().includes(searchLower) ||
+                           build.description.toLowerCase().includes(searchLower);
+                }
+
+                return true;
+            });
+
+            filtered.forEach(build => {
+                const card = document.createElement('div');
+                card.className = 'build-card';
+                card.innerHTML = `
+                    <div class="build-header">
+                        <span class="build-repo repo-${build.repo}">${build.repo === 'chill' ? 'Minoot-web-chill' : 'minoots-web'}</span>
+                    </div>
+                    <div class="build-title">${build.title}</div>
+                    <div class="build-branch">${build.branch}</div>
+                    <div class="build-description">${build.description}</div>
+                    <a href="${build.folder}/index.html" class="launch-btn" target="_blank">🚀 Launch Build</a>
+                `;
+                buildsGrid.appendChild(card);
+            });
+
+            // Update stats
+            document.getElementById('total-builds').textContent = filtered.length;
+            document.getElementById('chill-count').textContent = filtered.filter(b => b.repo === 'chill').length;
+            document.getElementById('web-count').textContent = filtered.filter(b => b.repo === 'web').length;
+        }
+
+        // Filter buttons
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                renderBuilds();
+            });
+        });
+
+        // Search
+        searchBox.addEventListener('input', (e) => {
+            currentSearch = e.target.value;
+            renderBuilds();
+        });
+
+        // Initial render
+        renderBuilds();
+    </script>
+</body>
+</html>

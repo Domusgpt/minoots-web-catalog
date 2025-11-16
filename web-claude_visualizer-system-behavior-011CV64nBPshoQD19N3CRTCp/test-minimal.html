@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Minimal Test</title>
+    <script src="./lib/gsap.min.js"></script>
+    <script src="./lib/ScrollTrigger.min.js"></script>
+</head>
+<body>
+    <h1>Test Page</h1>
+    <div class="morph-card">Card 1</div>
+    <div class="morph-card">Card 2</div>
+
+    <canvas id="test-canvas"></canvas>
+
+    <script>
+        console.log('Page loaded');
+        console.log('GSAP:', typeof gsap);
+        console.log('ScrollTrigger:', typeof ScrollTrigger);
+
+        // Don't try WebGL for now - just test if page stays alive
+        console.log('Script completed successfully');
+    </script>
+</body>
+</html>

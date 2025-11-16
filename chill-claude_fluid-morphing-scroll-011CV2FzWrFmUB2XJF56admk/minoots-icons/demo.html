@@ -1,0 +1,167 @@
+
+<!doctype html>
+<html>
+<meta charset="utf-8"/>
+<title>MINOOTS Icon Demo</title>
+<style>
+body{font-family:Inter,system-ui,Arial,sans-serif;background:#0b1220;color:#e6eefc;padding:24px}
+h1{font-size:20px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px}
+.card{background:#0f172a;padding:16px;border-radius:12px;border:1px solid #1f2a44}
+.icon{vertical-align:middle}
+.label{font-size:12px;color:#a8b1c7;margin-top:8px}
+.row{display:flex;gap:12px;align-items:center}
+</style>
+<body>
+<h1>MINOOTS Icons</h1>
+<!-- Inline the sprite for demo -->
+<div style="height:0;width:0;overflow:hidden">
+  <!--#include file='minoots-sprite.svg'-->
+</div>
+
+<link rel="stylesheet" href="icons.css"/>
+
+<div class="grid">
+  
+    <div class="card">
+      <div class="row">
+        <svg class="icon icon-xl icon-cyan"><use href="#timer-node"/></svg>
+        <svg class="icon icon-xl icon-silver"><use href="#timer-node"/></svg>
+        <svg class="icon icon-xl"><use href="#timer-node"/></svg>
+      </div>
+      <div class="label">timer-node</div>
+    </div>
+    
+
+    <div class="card">
+      <div class="row">
+        <svg class="icon icon-xl icon-cyan"><use href="#network-cluster"/></svg>
+        <svg class="icon icon-xl icon-silver"><use href="#network-cluster"/></svg>
+        <svg class="icon icon-xl"><use href="#network-cluster"/></svg>
+      </div>
+      <div class="label">network-cluster</div>
+    </div>
+    
+
+    <div class="card">
+      <div class="row">
+        <svg class="icon icon-xl icon-cyan"><use href="#pending-timer"/></svg>
+        <svg class="icon icon-xl icon-silver"><use href="#pending-timer"/></svg>
+        <svg class="icon icon-xl"><use href="#pending-timer"/></svg>
+      </div>
+      <div class="label">pending-timer</div>
+    </div>
+    
+
+    <div class="card">
+      <div class="row">
+        <svg class="icon icon-xl icon-cyan"><use href="#active-timer"/></svg>
+        <svg class="icon icon-xl icon-silver"><use href="#active-timer"/></svg>
+        <svg class="icon icon-xl"><use href="#active-timer"/></svg>
+      </div>
+      <div class="label">active-timer</div>
+    </div>
+    
+
+    <div class="card">
+      <div class="row">
+        <svg class="icon icon-xl icon-cyan"><use href="#failed-timer"/></svg>
+        <svg class="icon icon-xl icon-silver"><use href="#failed-timer"/></svg>
+        <svg class="icon icon-xl"><use href="#failed-timer"/></svg>
+      </div>
+      <div class="label">failed-timer</div>
+    </div>
+    
+
+    <div class="card">
+      <div class="row">
+        <svg class="icon icon-xl icon-cyan"><use href="#webhook"/></svg>
+        <svg class="icon icon-xl icon-silver"><use href="#webhook"/></svg>
+        <svg class="icon icon-xl"><use href="#webhook"/></svg>
+      </div>
+      <div class="label">webhook</div>
+    </div>
+    
+
+    <div class="card">
+      <div class="row">
+        <svg class="icon icon-xl icon-cyan"><use href="#timeline"/></svg>
+        <svg class="icon icon-xl icon-silver"><use href="#timeline"/></svg>
+        <svg class="icon icon-xl"><use href="#timeline"/></svg>
+      </div>
+      <div class="label">timeline</div>
+    </div>
+    
+
+    <div class="card">
+      <div class="row">
+        <svg class="icon icon-xl icon-cyan"><use href="#scale-expand"/></svg>
+        <svg class="icon icon-xl icon-silver"><use href="#scale-expand"/></svg>
+        <svg class="icon icon-xl"><use href="#scale-expand"/></svg>
+      </div>
+      <div class="label">scale-expand</div>
+    </div>
+    
+
+    <div class="card">
+      <div class="row">
+        <svg class="icon icon-xl icon-cyan"><use href="#precision-clock"/></svg>
+        <svg class="icon icon-xl icon-silver"><use href="#precision-clock"/></svg>
+        <svg class="icon icon-xl"><use href="#precision-clock"/></svg>
+      </div>
+      <div class="label">precision-clock</div>
+    </div>
+    
+
+    <div class="card">
+      <div class="row">
+        <svg class="icon icon-xl icon-cyan"><use href="#storage-postgres"/></svg>
+        <svg class="icon icon-xl icon-silver"><use href="#storage-postgres"/></svg>
+        <svg class="icon icon-xl"><use href="#storage-postgres"/></svg>
+      </div>
+      <div class="label">storage-postgres</div>
+    </div>
+    
+
+    <div class="card">
+      <div class="row">
+        <svg class="icon icon-xl icon-cyan"><use href="#raft-consensus"/></svg>
+        <svg class="icon icon-xl icon-silver"><use href="#raft-consensus"/></svg>
+        <svg class="icon icon-xl"><use href="#raft-consensus"/></svg>
+      </div>
+      <div class="label">raft-consensus</div>
+    </div>
+    
+
+    <div class="card">
+      <div class="row">
+        <svg class="icon icon-xl icon-cyan"><use href="#sdk-integration"/></svg>
+        <svg class="icon icon-xl icon-silver"><use href="#sdk-integration"/></svg>
+        <svg class="icon icon-xl"><use href="#sdk-integration"/></svg>
+      </div>
+      <div class="label">sdk-integration</div>
+    </div>
+    
+
+    <div class="card">
+      <div class="row">
+        <svg class="icon icon-xl icon-cyan"><use href="#dlq"/></svg>
+        <svg class="icon icon-xl icon-silver"><use href="#dlq"/></svg>
+        <svg class="icon icon-xl"><use href="#dlq"/></svg>
+      </div>
+      <div class="label">dlq</div>
+    </div>
+    
+
+    <div class="card">
+      <div class="row">
+        <svg class="icon icon-xl icon-cyan"><use href="#heartbeats"/></svg>
+        <svg class="icon icon-xl icon-silver"><use href="#heartbeats"/></svg>
+        <svg class="icon icon-xl"><use href="#heartbeats"/></svg>
+      </div>
+      <div class="label">heartbeats</div>
+    </div>
+    
+</div>
+</body>
+</html>

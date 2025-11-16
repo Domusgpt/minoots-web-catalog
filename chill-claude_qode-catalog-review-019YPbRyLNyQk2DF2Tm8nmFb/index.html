@@ -1,0 +1,3881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MINOOTS - Scroll Choreography</title>
+    <link rel="icon" type="image/png" href="./assets/minoots-logo-elegant-favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0D1117;
+            --primary: #58A6B8;
+            --accent: #E8957E;
+            --highlight: #9ECFB5;
+            --text: #E6EDF3;
+            --text-muted: #8B949E;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            font-family: var(--font-mono);
+            background: var(--bg-deep);
+            color: var(--text);
+            overflow-x: hidden;
+        }
+
+        /* ========== SYSTEM 1: SCROLL TIMELINE ORCHESTRATOR ========== */
+        .scroll-container {
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y proximity;
+            scroll-behavior: smooth;
+        }
+
+        /* ========== SYSTEM 2: VIEWPORT LOCK SYSTEM ========== */
+        .card-stage {
+            height: 300vh; /* 3x viewport for scroll progression */
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center; /* Flexbox centers horizontally */
+        }
+
+        .locked-card {
+            position: sticky;
+            top: 10vh; /* Position from top, centered in viewport */
+            width: 90vw;
+            max-width: 700px; /* Increased from 600px for more presence */
+            height: 80vh;
+            max-height: 700px; /* Increased from 600px */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            will-change: transform, border-radius, opacity, filter;
+            transform-origin: center center; /* Ensure transforms happen from center */
+            transform-style: preserve-3d; /* Enable 3D transforms */
+            backface-visibility: visible; /* Allow 3D flips to show both sides */
+        }
+
+        /* ========== SYSTEM 3: MULTI-LAYER PARALLAX (5 LAYERS) ========== */
+        .parallax-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .parallax-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .layer-1 { /* Slowest - deep background */
+            background: radial-gradient(circle at 50% 50%, rgba(88, 166, 184, 0.05), transparent);
+            transform: translateZ(-5px) scale(1.5);
+        }
+
+        .layer-2 {
+            background: radial-gradient(circle at 30% 70%, rgba(232, 149, 126, 0.03), transparent);
+            transform: translateZ(-3px) scale(1.3);
+        }
+
+        .layer-3 {
+            background: radial-gradient(circle at 70% 30%, rgba(158, 207, 181, 0.04), transparent);
+            transform: translateZ(-2px) scale(1.2);
+        }
+
+        /* VIB3+ Visualizer Canvases */
+        .visualizer-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            mix-blend-mode: screen;
+            opacity: 0;
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1;
+        }
+
+        .visualizer-canvas.active {
+            opacity: 1;
+        }
+
+        .visualizer-canvas.dominant {
+            opacity: 1;
+            filter: brightness(1.2);
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* ========== SYSTEM 4: CONTENT MORPH STAGES ========== */
+        .card-content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+        }
+
+        .content-stage {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .content-stage.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* ========== SYSTEM 5: TYPOGRAPHY SCALE SYSTEM ========== */
+        /* SESSION 4: Enhanced Typography */
+        .dynamic-title {
+            font-size: clamp(2rem, 8vw, 6rem);
+            font-weight: 300;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--highlight));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 40px rgba(88, 166, 184, 0.3);
+            transform-origin: center;
+            will-change: transform, font-size;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .dynamic-text {
+            font-size: clamp(1rem, 2vw, 1.4rem);
+            font-weight: 400;
+            line-height: 1.7;
+            color: var(--text);
+            opacity: 0.9;
+            max-width: 650px;
+            will-change: opacity, transform;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* SESSION 4: Text Reveal Animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* ========== SYSTEM 6: COLOR SHIFT ORCHESTRATION ========== */
+        .color-zone {
+            transition: background 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .color-zone-1 {
+            background: linear-gradient(180deg, #0D1117 0%, #1a2332 100%);
+        }
+
+        .color-zone-2 {
+            background: linear-gradient(180deg, #1a2332 0%, #2a1f2e 100%);
+        }
+
+        .color-zone-3 {
+            background: linear-gradient(180deg, #2a1f2e 0%, #1f2e2a 100%);
+        }
+
+        /* ========== SYSTEM 7: SHARED TIMING MARKERS ========== */
+        .timing-indicator {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-family: monospace;
+            z-index: 1000;
+            opacity: 0.5;
+        }
+
+        /* SESSION 4: Enhanced Card Shapes - 9 UNIQUE CARDS */
+        .locked-card {
+            backdrop-filter: blur(20px);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card-1 {
+            border-radius: 50%;
+            border: 2px solid rgba(88, 166, 184, 0.5);
+            background: radial-gradient(circle at 30% 30%, rgba(88, 166, 184, 0.15), transparent 70%);
+            box-shadow:
+                0 0 80px rgba(88, 166, 184, 0.3),
+                inset 0 0 60px rgba(88, 166, 184, 0.08),
+                0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-2 {
+            border-radius: 20px;
+            border: 2px solid rgba(232, 149, 126, 0.5);
+            background: radial-gradient(circle at 70% 40%, rgba(232, 149, 126, 0.15), transparent 70%);
+            box-shadow:
+                0 0 80px rgba(232, 149, 126, 0.3),
+                inset 0 0 60px rgba(232, 149, 126, 0.08),
+                0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-3 {
+            border-radius: 30px;
+            transform: translateY(-50%) rotate(45deg);
+            border: 2px solid rgba(158, 207, 181, 0.5);
+            background: radial-gradient(circle at 50% 60%, rgba(158, 207, 181, 0.15), transparent 70%);
+            box-shadow:
+                0 0 80px rgba(158, 207, 181, 0.3),
+                inset 0 0 60px rgba(158, 207, 181, 0.08),
+                0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-3 .card-content {
+            transform: rotate(-45deg);
+        }
+
+        .card-4 {
+            border-radius: 40% 60% 70% 30% / 50% 60% 40% 50%;
+            border: 2px solid rgba(255, 107, 107, 0.5);
+            background: radial-gradient(ellipse at 40% 50%, rgba(255, 107, 107, 0.15), transparent 70%);
+            box-shadow:
+                0 0 80px rgba(255, 107, 107, 0.3),
+                inset 0 0 60px rgba(255, 107, 107, 0.08),
+                0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-5 {
+            border-radius: 15px;
+            border: 2px solid rgba(255, 195, 0, 0.5);
+            background: linear-gradient(135deg, rgba(255, 195, 0, 0.15), rgba(255, 87, 34, 0.1));
+            box-shadow:
+                0 0 80px rgba(255, 195, 0, 0.3),
+                inset 0 0 60px rgba(255, 195, 0, 0.08),
+                0 20px 60px rgba(0, 0, 0, 0.4);
+            clip-path: polygon(10% 0%, 100% 0%, 90% 100%, 0% 100%);
+        }
+
+        .card-6 {
+            border-radius: 50% 50% 0 0;
+            border: 2px solid rgba(138, 43, 226, 0.5);
+            background: radial-gradient(circle at 50% 20%, rgba(138, 43, 226, 0.15), transparent 70%);
+            box-shadow:
+                0 0 80px rgba(138, 43, 226, 0.3),
+                inset 0 0 60px rgba(138, 43, 226, 0.08),
+                0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-7 {
+            border-radius: 25px;
+            border: 2px solid rgba(0, 229, 255, 0.5);
+            background: conic-gradient(from 45deg, rgba(0, 229, 255, 0.15), rgba(88, 166, 184, 0.1), rgba(0, 229, 255, 0.15));
+            box-shadow:
+                0 0 80px rgba(0, 229, 255, 0.3),
+                inset 0 0 60px rgba(0, 229, 255, 0.08),
+                0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-8 {
+            border-radius: 60px 10px 60px 10px;
+            border: 2px solid rgba(76, 175, 80, 0.5);
+            background: radial-gradient(ellipse at 25% 75%, rgba(76, 175, 80, 0.15), transparent 70%);
+            box-shadow:
+                0 0 80px rgba(76, 175, 80, 0.3),
+                inset 0 0 60px rgba(76, 175, 80, 0.08),
+                0 20px 60px rgba(0, 0, 0, 0.4);
+            transform: translateY(-50%) rotate(-15deg);
+        }
+
+        .card-8 .card-content {
+            transform: rotate(15deg);
+        }
+
+        .card-9 {
+            border-radius: 100px;
+            border: 2px solid rgba(233, 30, 99, 0.5);
+            background: linear-gradient(225deg, rgba(233, 30, 99, 0.15), rgba(138, 43, 226, 0.1));
+            box-shadow:
+                0 0 80px rgba(233, 30, 99, 0.3),
+                inset 0 0 60px rgba(233, 30, 99, 0.08),
+                0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Feature badges */
+        .feature-badge {
+            padding: 0.75rem 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-badge::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .feature-badge:hover::before {
+            left: 100%;
+        }
+
+        .feature-badge:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: var(--primary);
+            transform: translateY(-3px);
+            box-shadow:
+                0 10px 25px rgba(0, 0, 0, 0.3),
+                0 0 20px rgba(88, 166, 184, 0.4);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .feature-item {
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-item::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(88, 166, 184, 0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .feature-item:hover::before {
+            opacity: 1;
+        }
+
+        .feature-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--primary);
+            transform: translateY(-8px) scale(1.03);
+            box-shadow:
+                0 15px 40px rgba(0, 0, 0, 0.5),
+                0 0 30px rgba(88, 166, 184, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .feature-item h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            color: var(--primary);
+            letter-spacing: 0.02em;
+            position: relative;
+            z-index: 1;
+        }
+
+        .feature-item p {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.7;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-counter {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--highlight));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.04);
+            padding: 2.5rem 2rem;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(15px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--highlight));
+            transform: scaleX(0);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .metric-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .metric-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--primary);
+            transform: translateY(-5px);
+            box-shadow:
+                0 15px 35px rgba(0, 0, 0, 0.4),
+                0 0 25px rgba(88, 166, 184, 0.25);
+        }
+
+        /* Mobile portrait lock */
+        @media (max-width: 768px) and (orientation: portrait) {
+            .locked-card {
+                width: 95vw;
+                height: 85vh;
+                top: 50%;
+            }
+
+            .dynamic-title {
+                font-size: clamp(2.5rem, 10vw, 4rem);
+            }
+
+            .content-stage {
+                padding: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="timing-indicator" id="timingDebug">
+        Scroll: 0%<br>
+        Stage: INIT<br>
+        Card: -<br>
+        Phase: 0
+    </div>
+
+    <!-- Parallax Background System -->
+    <div class="parallax-bg">
+        <div class="parallax-layer layer-1" id="layer1"></div>
+        <div class="parallax-layer layer-2" id="layer2"></div>
+        <div class="parallax-layer layer-3" id="layer3"></div>
+        <!-- VIB3+ Visualizer Canvases (Max 2 Active) -->
+        <canvas class="visualizer-canvas" id="viz-primary"></canvas>
+        <canvas class="visualizer-canvas" id="viz-secondary"></canvas>
+    </div>
+
+    <div class="scroll-container color-zone color-zone-1" id="scrollContainer">
+        <!-- Hero Section - MASSIVELY EXPANDED -->
+        <section style="min-height: 180vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 4rem 2rem; gap: 3rem;">
+            <div style="max-width: 1200px; width: 100%;">
+                <h1 class="dynamic-title" style="font-size: clamp(5rem, 15vw, 10rem); margin-bottom: 1rem;">MINOOTS</h1>
+                <p class="dynamic-text" style="font-size: clamp(1.2rem, 3vw, 2rem); letter-spacing: 0.3em; text-transform: uppercase; margin-bottom: 2rem;">Precision Task Orchestration</p>
+                <p class="dynamic-text" style="font-size: clamp(1rem, 2vw, 1.3rem); max-width: 800px; margin: 0 auto 3rem; line-height: 1.8;">
+                    Enterprise-grade distributed scheduler with microsecond precision, Raft consensus, and intelligent execution. Built for mission-critical workloads that demand absolute reliability.
+                </p>
+
+                <!-- Stat Counters -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; margin: 3rem auto; max-width: 900px;">
+                    <div class="metric-card">
+                        <div class="stat-counter">99.99%</div>
+                        <p class="dynamic-text" style="font-size: 0.9rem;">Uptime SLA</p>
+                    </div>
+                    <div class="metric-card">
+                        <div class="stat-counter">&lt;1μs</div>
+                        <p class="dynamic-text" style="font-size: 0.9rem;">Precision</p>
+                    </div>
+                    <div class="metric-card">
+                        <div class="stat-counter">1M+</div>
+                        <p class="dynamic-text" style="font-size: 0.9rem;">Tasks/Second</p>
+                    </div>
+                    <div class="metric-card">
+                        <div class="stat-counter">∞</div>
+                        <p class="dynamic-text" style="font-size: 0.9rem;">Horizontal Scale</p>
+                    </div>
+                </div>
+
+                <!-- Feature Badges -->
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin: 3rem auto; max-width: 900px;">
+                    <span class="feature-badge">Distributed Architecture</span>
+                    <span class="feature-badge">Zero Downtime Deployments</span>
+                    <span class="feature-badge">Multi-Region Support</span>
+                    <span class="feature-badge">Real-time Monitoring</span>
+                    <span class="feature-badge">Auto-Scaling</span>
+                    <span class="feature-badge">Disaster Recovery</span>
+                    <span class="feature-badge">Multi-Tenancy</span>
+                    <span class="feature-badge">End-to-End Encryption</span>
+                </div>
+
+                <!--  Feature Grid -->
+                <div class="feature-grid" style="margin: 4rem auto;">
+                    <div class="feature-item">
+                        <h3>⚡ Lightning Fast</h3>
+                        <p>Sub-millisecond task scheduling with microsecond-level precision timing</p>
+                    </div>
+                    <div class="feature-item">
+                        <h3>🔒 Enterprise Security</h3>
+                        <p>End-to-end encryption, RBAC, audit logs, and SOC 2 compliance</p>
+                    </div>
+                    <div class="feature-item">
+                        <h3>📈 Infinite Scale</h3>
+                        <p>Horizontal scaling across regions with automatic load balancing</p>
+                    </div>
+                    <div class="feature-item">
+                        <h3>🛡️ Fault Tolerant</h3>
+                        <p>Raft consensus ensures zero data loss with automatic failover</p>
+                    </div>
+                    <div class="feature-item">
+                        <h3>🔄 Real-time Sync</h3>
+                        <p>WebSocket connections for instant updates and bi-directional communication</p>
+                    </div>
+                    <div class="feature-item">
+                        <h3>📊 Deep Observability</h3>
+                        <p>Comprehensive metrics, tracing, and logging with custom dashboards</p>
+                    </div>
+                </div>
+
+                <div style="margin-top: 4rem; opacity: 0.6; animation: pulse 2s ease-in-out infinite; font-size: 2rem;">↓</div>
+                <p style="opacity: 0.5; animation: pulse 2s ease-in-out infinite 0.2s; margin-top: 1rem;">Scroll to explore the architecture</p>
+            </div>
+        </section>
+
+        <!-- Card 1: Precision - MASSIVELY EXPANDED -->
+        <section class="card-stage" data-card="1">
+            <div class="locked-card card-1" id="card1">
+                <div class="card-content">
+                    <!-- Stage 1: Title (0-20%) -->
+                    <div class="content-stage stage-1">
+                        <h2 class="dynamic-title" style="font-size: clamp(3rem, 8vw, 6rem);">Precision</h2>
+                        <p class="dynamic-text" style="margin-top: 1rem; font-size: 1.2rem;">Microsecond-Level Accuracy</p>
+                    </div>
+
+                    <!-- Stage 2: Core Description (20-40%) -->
+                    <div class="content-stage stage-2">
+                        <h2 class="dynamic-title" style="font-size: clamp(2rem, 6vw, 4rem);">Precision Timing Engine</h2>
+                        <p class="dynamic-text" style="margin: 1.5rem 0; font-size: 1.1rem; max-width: 600px;">
+                            Sub-microsecond accuracy with NTP synchronization across distributed nodes. Hardware-accelerated timing for mission-critical scheduling.
+                        </p>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem;">
+                            <span class="feature-badge">Cron++ Syntax</span>
+                            <span class="feature-badge">NTP/PTP Sync</span>
+                            <span class="feature-badge">&lt;1μs Jitter</span>
+                        </div>
+                    </div>
+
+                    <!-- Stage 3: Technical Specs (40-60%) -->
+                    <div class="content-stage stage-3">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.5rem, 5vw, 3rem);">Technical Specifications</h2>
+                        <div class="feature-grid" style="margin-top: 2rem;">
+                            <div class="feature-item">
+                                <h3>Hardware Timestamping</h3>
+                                <p>RDTSC instruction for CPU-level precision timing</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Clock Synchronization</h3>
+                                <p>NTP/PTP protocol support with sub-ms drift correction</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Leap Second Handling</h3>
+                                <p>Automatic adjustment for UTC leap seconds</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Time Zone Aware</h3>
+                                <p>IANA timezone database with DST transitions</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stage 4: Metrics (60-80%) -->
+                    <div class="content-stage stage-4">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.3rem, 4vw, 2.5rem);">Performance Metrics</h2>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1.5rem; margin-top: 2rem; max-width: 700px;">
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">0.8μs</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Avg Latency</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">±0.1μs</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Max Jitter</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">10M</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Tasks/s</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stage 5: Full Details (80-100%) -->
+                    <div class="content-stage stage-5">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.2rem, 3.5vw, 2rem);">Complete Timing Solution</h2>
+                        <p class="dynamic-text" style="margin: 1rem 0; max-width: 650px; font-size: 0.95rem; line-height: 1.7;">
+                            Advanced scheduling engine with hardware timestamping, distributed clock synchronization, and intelligent drift compensation. Supports complex cron expressions, calendar-based scheduling, and one-time task execution with guaranteed precision.
+                        </p>
+                        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem; max-width: 700px;">
+                            <span class="feature-badge">Extended Cron</span>
+                            <span class="feature-badge">Cron Predictor</span>
+                            <span class="feature-badge">Timezone Support</span>
+                            <span class="feature-badge">Leap Seconds</span>
+                            <span class="feature-badge">NTP Pool</span>
+                            <span class="feature-badge">PTP IEEE 1588</span>
+                            <span class="feature-badge">RDTSC Timing</span>
+                            <span class="feature-badge">Drift Correction</span>
+                            <span class="feature-badge">Quartz Precision</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Card 2: Consensus -->
+        <section class="card-stage" data-card="2">
+            <div class="locked-card card-2" id="card2">
+                <div class="card-content">
+                    <!-- Stage 1: Title (0-20%) -->
+                    <div class="content-stage stage-1">
+                        <h2 class="dynamic-title" style="font-size: clamp(3rem, 8vw, 6rem);">Consensus</h2>
+                        <p class="dynamic-text" style="margin-top: 1rem; font-size: 1.2rem;">Distributed State Agreement</p>
+                    </div>
+
+                    <!-- Stage 2: Core Description (20-40%) -->
+                    <div class="content-stage stage-2">
+                        <h2 class="dynamic-title" style="font-size: clamp(2rem, 6vw, 4rem);">Raft Consensus</h2>
+                        <p class="dynamic-text" style="margin: 1.5rem 0; font-size: 1.1rem; max-width: 600px;">
+                            Battle-tested consistency algorithm with automatic leader election and instant failover for unmatched reliability.
+                        </p>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem;">
+                            <span class="feature-badge">Strong Consistency</span>
+                            <span class="feature-badge">Auto Failover</span>
+                            <span class="feature-badge">Quorum Based</span>
+                        </div>
+                    </div>
+
+                    <!-- Stage 3: Technical Specs (40-60%) -->
+                    <div class="content-stage stage-3">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.5rem, 5vw, 3rem);">Consensus Architecture</h2>
+                        <div class="feature-grid" style="margin-top: 2rem;">
+                            <div class="feature-item">
+                                <h3>Leader Election</h3>
+                                <p>Automatic leader selection with randomized timeouts preventing split-brain scenarios</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Log Replication</h3>
+                                <p>Append-only log structure ensures all nodes maintain identical state machines</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Safety Guarantees</h3>
+                                <p>Committed entries never lost, strong linearizability across all operations</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Membership Changes</h3>
+                                <p>Dynamic cluster reconfiguration without service interruption</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stage 4: Metrics (60-80%) -->
+                    <div class="content-stage stage-4">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.3rem, 4vw, 2.5rem);">Consensus Metrics</h2>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1.5rem; margin-top: 2rem; max-width: 700px;">
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">50ms</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Election Time</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">99.99%</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Availability</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">N/2+1</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Quorum Size</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem; max-width: 700px;">
+                            <span class="feature-badge">Split-brain Prevention</span>
+                            <span class="feature-badge">Snapshot Compaction</span>
+                            <span class="feature-badge">Read Consistency</span>
+                            <span class="feature-badge">Lease-based Reads</span>
+                        </div>
+                    </div>
+
+                    <!-- Stage 5: Full Details (80-100%) -->
+                    <div class="content-stage stage-5">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.2rem, 3.5vw, 2rem);">Complete Consensus System</h2>
+                        <p class="dynamic-text" style="margin: 1rem 0; max-width: 650px; font-size: 0.95rem; line-height: 1.7;">
+                            Production-hardened Raft implementation with optimizations for high-throughput workloads. Features include pre-vote protocol, leadership transfer, log compaction, and batched replication. Supports read-only queries with lease-based optimization and witness nodes for improved quorum efficiency.
+                        </p>
+                        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem; max-width: 700px;">
+                            <span class="feature-badge">Pre-vote Protocol</span>
+                            <span class="feature-badge">Leadership Transfer</span>
+                            <span class="feature-badge">Log Compaction</span>
+                            <span class="feature-badge">Batched Replication</span>
+                            <span class="feature-badge">Witness Nodes</span>
+                            <span class="feature-badge">Joint Consensus</span>
+                            <span class="feature-badge">Pipeline Replication</span>
+                            <span class="feature-badge">Async Snapshots</span>
+                            <span class="feature-badge">Zero-copy Transfer</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Card 3: Execution -->
+        <section class="card-stage" data-card="3">
+            <div class="locked-card card-3" id="card3">
+                <div class="card-content">
+                    <!-- Stage 1: Title (0-20%) -->
+                    <div class="content-stage stage-1">
+                        <h2 class="dynamic-title" style="font-size: clamp(3rem, 8vw, 6rem);">Execution</h2>
+                        <p class="dynamic-text" style="margin-top: 1rem; font-size: 1.2rem;">Reliable Task Delivery</p>
+                    </div>
+
+                    <!-- Stage 2: Core Description (20-40%) -->
+                    <div class="content-stage stage-2">
+                        <h2 class="dynamic-title" style="font-size: clamp(2rem, 6vw, 4rem);">Execution & Delivery</h2>
+                        <p class="dynamic-text" style="margin: 1.5rem 0; font-size: 1.1rem; max-width: 600px;">
+                            Intelligent webhook system with exponential backoff, dead-letter queuing, and HMAC authentication for secure, reliable delivery.
+                        </p>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem;">
+                            <span class="feature-badge">HTTP Webhooks</span>
+                            <span class="feature-badge">DLQ Support</span>
+                            <span class="feature-badge">HMAC Auth</span>
+                        </div>
+                    </div>
+
+                    <!-- Stage 3: Technical Specs (40-60%) -->
+                    <div class="content-stage stage-3">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.5rem, 5vw, 3rem);">Delivery Architecture</h2>
+                        <div class="feature-grid" style="margin-top: 2rem;">
+                            <div class="feature-item">
+                                <h3>Smart Retries</h3>
+                                <p>Exponential backoff with jitter prevents thundering herd scenarios</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Circuit Breakers</h3>
+                                <p>Automatic endpoint health monitoring with graceful degradation</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Payload Signing</h3>
+                                <p>HMAC-SHA256 signatures ensure webhook authenticity and integrity</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Dead Letter Queue</h3>
+                                <p>Failed deliveries automatically routed for manual inspection</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stage 4: Metrics (60-80%) -->
+                    <div class="content-stage stage-4">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.3rem, 4vw, 2.5rem);">Delivery Metrics</h2>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1.5rem; margin-top: 2rem; max-width: 700px;">
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">99.7%</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Success Rate</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">5x</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Max Retries</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">30s</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Timeout</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem; max-width: 700px;">
+                            <span class="feature-badge">Rate Limiting</span>
+                            <span class="feature-badge">Batch Delivery</span>
+                            <span class="feature-badge">Priority Queues</span>
+                            <span class="feature-badge">Custom Headers</span>
+                        </div>
+                    </div>
+
+                    <!-- Stage 5: Full Details (80-100%) -->
+                    <div class="content-stage stage-5">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.2rem, 3.5vw, 2rem);">Complete Execution System</h2>
+                        <p class="dynamic-text" style="margin: 1rem 0; max-width: 650px; font-size: 0.95rem; line-height: 1.7;">
+                            Enterprise-grade delivery engine with support for HTTP/2, TLS 1.3, and connection pooling. Features include request deduplication, idempotency keys, payload compression, and webhook replay capability. Comprehensive audit logging tracks every delivery attempt with full traceability.
+                        </p>
+                        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem; max-width: 700px;">
+                            <span class="feature-badge">HTTP/2 Support</span>
+                            <span class="feature-badge">TLS 1.3</span>
+                            <span class="feature-badge">Connection Pool</span>
+                            <span class="feature-badge">Deduplication</span>
+                            <span class="feature-badge">Idempotency Keys</span>
+                            <span class="feature-badge">Gzip/Brotli</span>
+                            <span class="feature-badge">Webhook Replay</span>
+                            <span class="feature-badge">Audit Logs</span>
+                            <span class="feature-badge">Custom Timeouts</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Card 4: Distributed Storage & State Management -->
+        <section class="card-stage" data-card="4">
+            <div class="locked-card card-4" id="card4">
+                <div class="card-content">
+                    <!-- Stage 1: Title (0-20%) -->
+                    <div class="content-stage stage-1">
+                        <h2 class="dynamic-title" style="font-size: clamp(3rem, 8vw, 6rem);">Storage</h2>
+                        <p class="dynamic-text" style="margin-top: 1rem; font-size: 1.2rem;">Distributed State Persistence</p>
+                    </div>
+
+                    <!-- Stage 2: Core Description (20-40%) -->
+                    <div class="content-stage stage-2">
+                        <h2 class="dynamic-title" style="font-size: clamp(2rem, 6vw, 4rem);">Distributed Storage</h2>
+                        <p class="dynamic-text" style="margin: 1.5rem 0; font-size: 1.1rem; max-width: 600px;">
+                            Multi-region replicated storage with automatic sharding, erasure coding, and intelligent caching for petabyte-scale data durability.
+                        </p>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem;">
+                            <span class="feature-badge">Multi-Region</span>
+                            <span class="feature-badge">Auto-Sharding</span>
+                            <span class="feature-badge">Erasure Coding</span>
+                            <span class="feature-badge">Smart Cache</span>
+                        </div>
+                    </div>
+
+                    <!-- Stage 3: Technical Specs (40-60%) -->
+                    <div class="content-stage stage-3">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.5rem, 5vw, 3rem);">Storage Architecture</h2>
+                        <div class="feature-grid" style="margin-top: 2rem;">
+                            <div class="feature-item">
+                                <h3>Consistent Hashing</h3>
+                                <p>Virtual nodes enable seamless rebalancing without data movement</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Erasure Coding</h3>
+                                <p>Reed-Solomon encoding provides 99.999999999% durability with 50% overhead</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Tiered Storage</h3>
+                                <p>Hot/warm/cold data automatically migrated to optimize cost and performance</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Vector Clocks</h3>
+                                <p>Conflict-free replicated data types handle concurrent updates gracefully</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Write-Ahead Log</h3>
+                                <p>Durable WAL ensures zero data loss during crashes or power failures</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Bloom Filters</h3>
+                                <p>Probabilistic data structures reduce unnecessary disk reads by 90%</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stage 4: Metrics (60-80%) -->
+                    <div class="content-stage stage-4">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.3rem, 4vw, 2.5rem);">Storage Performance</h2>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1.5rem; margin-top: 2rem; max-width: 700px;">
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">11 9's</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Durability</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">100K</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">IOPS/Node</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">10GB/s</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Throughput</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">&lt;1ms</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">P99 Latency</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem; max-width: 750px;">
+                            <span class="feature-badge">LSM Trees</span>
+                            <span class="feature-badge">Compaction</span>
+                            <span class="feature-badge">Snapshots</span>
+                            <span class="feature-badge">Point-in-Time Recovery</span>
+                            <span class="feature-badge">Multi-version Concurrency</span>
+                            <span class="feature-badge">Copy-on-Write</span>
+                        </div>
+                    </div>
+
+                    <!-- Stage 5: Full Details (80-100%) -->
+                    <div class="content-stage stage-5">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.2rem, 3.5vw, 2rem);">Complete Storage Platform</h2>
+                        <p class="dynamic-text" style="margin: 1rem 0; max-width: 650px; font-size: 0.95rem; line-height: 1.7;">
+                            Enterprise storage engine built on RocksDB with custom optimizations for time-series and document workloads. Features include online schema migration, automatic compaction tuning, transparent encryption at rest, and cross-region replication with conflict resolution. Supports multiple storage backends including NVMe, SSD, and object storage with intelligent tiering.
+                        </p>
+                        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem; max-width: 750px;">
+                            <span class="feature-badge">RocksDB Engine</span>
+                            <span class="feature-badge">NVMe Optimized</span>
+                            <span class="feature-badge">Column Families</span>
+                            <span class="feature-badge">Memtable Flush</span>
+                            <span class="feature-badge">Block Cache</span>
+                            <span class="feature-badge">Compression (LZ4/Zstd)</span>
+                            <span class="feature-badge">Online Schema Migration</span>
+                            <span class="feature-badge">Encryption at Rest</span>
+                            <span class="feature-badge">Geo-Replication</span>
+                            <span class="feature-badge">CRDTs</span>
+                            <span class="feature-badge">Merkle Trees</span>
+                            <span class="feature-badge">Anti-Entropy</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Card 5: Network Architecture & Load Balancing -->
+        <section class="card-stage" data-card="5">
+            <div class="locked-card card-5" id="card5">
+                <div class="card-content">
+                    <!-- Stage 1: Title (0-20%) -->
+                    <div class="content-stage stage-1">
+                        <h2 class="dynamic-title" style="font-size: clamp(3rem, 8vw, 6rem);">Network</h2>
+                        <p class="dynamic-text" style="margin-top: 1rem; font-size: 1.2rem;">Global Traffic Orchestration</p>
+                    </div>
+
+                    <!-- Stage 2: Core Description (20-40%) -->
+                    <div class="content-stage stage-2">
+                        <h2 class="dynamic-title" style="font-size: clamp(2rem, 6vw, 4rem);">Network Architecture</h2>
+                        <p class="dynamic-text" style="margin: 1.5rem 0; font-size: 1.1rem; max-width: 600px;">
+                            Global anycast network with intelligent load balancing, traffic shaping, and DDoS protection delivering sub-10ms latency worldwide.
+                        </p>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem;">
+                            <span class="feature-badge">Anycast DNS</span>
+                            <span class="feature-badge">L7 Load Balancer</span>
+                            <span class="feature-badge">DDoS Protection</span>
+                            <span class="feature-badge">Traffic Shaping</span>
+                        </div>
+                    </div>
+
+                    <!-- Stage 3: Technical Specs (40-60%) -->
+                    <div class="content-stage stage-3">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.5rem, 5vw, 3rem);">Load Balancing Engine</h2>
+                        <div class="feature-grid" style="margin-top: 2rem;">
+                            <div class="feature-item">
+                                <h3>Adaptive Routing</h3>
+                                <p>Machine learning algorithms route traffic based on real-time latency and health</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Session Affinity</h3>
+                                <p>Consistent hashing maintains sticky sessions without shared state</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Health Checks</h3>
+                                <p>Active and passive probes detect failures in milliseconds</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Weighted Routing</h3>
+                                <p>Canary deployments and A/B testing with gradual traffic shifts</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Connection Pool</h3>
+                                <p>HTTP/2 multiplexing and connection reuse reduce overhead by 80%</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>TLS Termination</h3>
+                                <p>Hardware-accelerated crypto offload with session resumption</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stage 4: Metrics (60-80%) -->
+                    <div class="content-stage stage-4">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.3rem, 4vw, 2.5rem);">Network Performance</h2>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1.5rem; margin-top: 2rem; max-width: 700px;">
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">&lt;10ms</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Global P50</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">1M+</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">RPS/Node</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">100Gbps</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Per Edge</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">50+</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">PoPs</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem; max-width: 750px;">
+                            <span class="feature-badge">BGP Anycast</span>
+                            <span class="feature-badge">QUIC Protocol</span>
+                            <span class="feature-badge">TCP BBR</span>
+                            <span class="feature-badge">Zero-RTT</span>
+                            <span class="feature-badge">Early Hints</span>
+                            <span class="feature-badge">HTTP/3</span>
+                        </div>
+                    </div>
+
+                    <!-- Stage 5: Full Details (80-100%) -->
+                    <div class="content-stage stage-5">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.2rem, 3.5vw, 2rem);">Complete Network Stack</h2>
+                        <p class="dynamic-text" style="margin: 1rem 0; max-width: 650px; font-size: 0.95rem; line-height: 1.7;">
+                            Global edge network with 50+ points of presence across 6 continents. Features include intelligent DNS with GeoDNS routing, Layer 4 and Layer 7 load balancing, WAF protection, rate limiting, and bot mitigation. Supports HTTP/3 with QUIC, TLS 1.3 with 0-RTT, and TCP BBR congestion control. Built-in CDN capabilities with edge computing for ultra-low latency.
+                        </p>
+                        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem; max-width: 750px;">
+                            <span class="feature-badge">Global Anycast</span>
+                            <span class="feature-badge">GeoDNS</span>
+                            <span class="feature-badge">L4 & L7 LB</span>
+                            <span class="feature-badge">WAF Rules</span>
+                            <span class="feature-badge">Rate Limiting</span>
+                            <span class="feature-badge">Bot Mitigation</span>
+                            <span class="feature-badge">Edge Computing</span>
+                            <span class="feature-badge">CDN Cache</span>
+                            <span class="feature-badge">Brotli/Gzip</span>
+                            <span class="feature-badge">IPv6 Native</span>
+                            <span class="feature-badge">DNSSEC</span>
+                            <span class="feature-badge">Proxy Protocol</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Card 6: Security & Authentication -->
+        <section class="card-stage" data-card="6">
+            <div class="locked-card card-6" id="card6">
+                <div class="card-content">
+                    <!-- Stage 1: Title (0-20%) -->
+                    <div class="content-stage stage-1">
+                        <h2 class="dynamic-title" style="font-size: clamp(3rem, 8vw, 6rem);">Security</h2>
+                        <p class="dynamic-text" style="margin-top: 1rem; font-size: 1.2rem;">Zero-Trust Architecture</p>
+                    </div>
+
+                    <!-- Stage 2: Core Description (20-40%) -->
+                    <div class="content-stage stage-2">
+                        <h2 class="dynamic-title" style="font-size: clamp(2rem, 6vw, 4rem);">Security & Auth</h2>
+                        <p class="dynamic-text" style="margin: 1.5rem 0; font-size: 1.1rem; max-width: 600px;">
+                            Military-grade security with end-to-end encryption, certificate pinning, and hardware security modules protecting data at rest and in transit.
+                        </p>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem;">
+                            <span class="feature-badge">E2E Encryption</span>
+                            <span class="feature-badge">mTLS</span>
+                            <span class="feature-badge">HSM Storage</span>
+                            <span class="feature-badge">RBAC</span>
+                        </div>
+                    </div>
+
+                    <!-- Stage 3: Technical Specs (40-60%) -->
+                    <div class="content-stage stage-3">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.5rem, 5vw, 3rem);">Security Architecture</h2>
+                        <div class="feature-grid" style="margin-top: 2rem;">
+                            <div class="feature-item">
+                                <h3>OAuth 2.1 & OIDC</h3>
+                                <p>Modern authentication with PKCE, JWT tokens, and refresh token rotation</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>mTLS Everywhere</h3>
+                                <p>Mutual TLS authentication between all services with auto-rotation</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Secrets Management</h3>
+                                <p>HashiCorp Vault integration with dynamic secrets and lease management</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Fine-grained RBAC</h3>
+                                <p>Attribute-based access control with policy-as-code enforcement</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Audit Logging</h3>
+                                <p>Immutable audit trail with cryptographic verification and compliance exports</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Threat Detection</h3>
+                                <p>ML-powered anomaly detection identifies suspicious behavior in real-time</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stage 4: Metrics (60-80%) -->
+                    <div class="content-stage stage-4">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.3rem, 4vw, 2.5rem);">Security Metrics</h2>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1.5rem; margin-top: 2rem; max-width: 700px;">
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">AES-256</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Encryption</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">SOC 2</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Certified</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">GDPR</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Compliant</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">24/7</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">SOC Team</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem; max-width: 750px;">
+                            <span class="feature-badge">Zero Trust</span>
+                            <span class="feature-badge">Network Segmentation</span>
+                            <span class="feature-badge">Intrusion Detection</span>
+                            <span class="feature-badge">Penetration Testing</span>
+                            <span class="feature-badge">Bug Bounty</span>
+                            <span class="feature-badge">Security Scanning</span>
+                        </div>
+                    </div>
+
+                    <!-- Stage 5: Full Details (80-100%) -->
+                    <div class="content-stage stage-5">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.2rem, 3.5vw, 2rem);">Enterprise Security Suite</h2>
+                        <p class="dynamic-text" style="margin: 1rem 0; max-width: 650px; font-size: 0.95rem; line-height: 1.7;">
+                            Comprehensive security platform with SOC 2 Type II, ISO 27001, and GDPR compliance. Features include hardware security modules for key storage, certificate authority with automated rotation, Web Application Firewall with custom rules, DDoS mitigation, and real-time threat intelligence integration. Supports SSO with SAML 2.0, SCIM provisioning, and MFA with hardware tokens. Complete audit trail with tamper-proof logging.
+                        </p>
+                        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem; max-width: 750px;">
+                            <span class="feature-badge">HSM Key Storage</span>
+                            <span class="feature-badge">Auto PKI</span>
+                            <span class="feature-badge">SAML 2.0</span>
+                            <span class="feature-badge">SCIM Sync</span>
+                            <span class="feature-badge">WebAuthn/FIDO2</span>
+                            <span class="feature-badge">OTP & U2F</span>
+                            <span class="feature-badge">IP Whitelisting</span>
+                            <span class="feature-badge">Session Management</span>
+                            <span class="feature-badge">Secrets Rotation</span>
+                            <span class="feature-badge">Encryption at Rest</span>
+                            <span class="feature-badge">Perfect Forward Secrecy</span>
+                            <span class="feature-badge">Certificate Pinning</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Card 7: Monitoring & Observability -->
+        <section class="card-stage" data-card="7">
+            <div class="locked-card card-7" id="card7">
+                <div class="card-content">
+                    <!-- Stage 1: Title (0-20%) -->
+                    <div class="content-stage stage-1">
+                        <h2 class="dynamic-title" style="font-size: clamp(3rem, 8vw, 6rem);">Monitoring</h2>
+                        <p class="dynamic-text" style="margin-top: 1rem; font-size: 1.2rem;">Deep System Observability</p>
+                    </div>
+
+                    <!-- Stage 2: Core Description (20-40%) -->
+                    <div class="content-stage stage-2">
+                        <h2 class="dynamic-title" style="font-size: clamp(2rem, 6vw, 4rem);">Observability</h2>
+                        <p class="dynamic-text" style="margin: 1.5rem 0; font-size: 1.1rem; max-width: 600px;">
+                            Complete observability stack with distributed tracing, real-time metrics, structured logging, and AI-powered anomaly detection across the entire platform.
+                        </p>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem;">
+                            <span class="feature-badge">Distributed Tracing</span>
+                            <span class="feature-badge">Metrics</span>
+                            <span class="feature-badge">Logging</span>
+                            <span class="feature-badge">APM</span>
+                        </div>
+                    </div>
+
+                    <!-- Stage 3: Technical Specs (40-60%) -->
+                    <div class="content-stage stage-3">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.5rem, 5vw, 3rem);">Observability Platform</h2>
+                        <div class="feature-grid" style="margin-top: 2rem;">
+                            <div class="feature-item">
+                                <h3>OpenTelemetry</h3>
+                                <p>Vendor-neutral instrumentation with auto-discovery and sampling</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Prometheus Metrics</h3>
+                                <p>High-cardinality time-series with PromQL queries and alerting</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Distributed Tracing</h3>
+                                <p>Jaeger integration tracks requests across 100+ microservices</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Log Aggregation</h3>
+                                <p>Structured logging with ELK stack and full-text search capabilities</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>SLI/SLO Tracking</h3>
+                                <p>Error budgets and burn rates with automated alerting thresholds</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Anomaly Detection</h3>
+                                <p>Machine learning models identify unusual patterns before incidents</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stage 4: Metrics (60-80%) -->
+                    <div class="content-stage stage-4">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.3rem, 4vw, 2.5rem);">Monitoring Metrics</h2>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1.5rem; margin-top: 2rem; max-width: 700px;">
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">10M+</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Metrics/sec</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">1TB+</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Logs/day</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">100K</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Spans/sec</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">99.9%</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">SLO Target</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem; max-width: 750px;">
+                            <span class="feature-badge">Custom Dashboards</span>
+                            <span class="feature-badge">Alert Routing</span>
+                            <span class="feature-badge">Incident Management</span>
+                            <span class="feature-badge">On-Call Rotation</span>
+                            <span class="feature-badge">Runbooks</span>
+                            <span class="feature-badge">Postmortems</span>
+                        </div>
+                    </div>
+
+                    <!-- Stage 5: Full Details (80-100%) -->
+                    <div class="content-stage stage-5">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.2rem, 3.5vw, 2rem);">Complete Observability Suite</h2>
+                        <p class="dynamic-text" style="margin: 1rem 0; max-width: 650px; font-size: 0.95rem; line-height: 1.7;">
+                            Enterprise observability platform combining Prometheus for metrics, Jaeger for distributed tracing, and ELK stack for log aggregation. Features include custom Grafana dashboards, PagerDuty integration, intelligent alert correlation, and automated root cause analysis. Supports OpenTelemetry instrumentation with auto-injection, service mesh observability, and infrastructure monitoring. Built-in profiling with flame graphs and memory leak detection.
+                        </p>
+                        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem; max-width: 750px;">
+                            <span class="feature-badge">Prometheus/Grafana</span>
+                            <span class="feature-badge">Jaeger Tracing</span>
+                            <span class="feature-badge">ELK Stack</span>
+                            <span class="feature-badge">PagerDuty</span>
+                            <span class="feature-badge">Slack/Teams</span>
+                            <span class="feature-badge">Service Mesh</span>
+                            <span class="feature-badge">Golden Signals</span>
+                            <span class="feature-badge">Error Tracking</span>
+                            <span class="feature-badge">Performance Profiling</span>
+                            <span class="feature-badge">Continuous Profiler</span>
+                            <span class="feature-badge">Memory Analysis</span>
+                            <span class="feature-badge">Query Analytics</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Card 8: API Gateway & Integration -->
+        <section class="card-stage" data-card="8">
+            <div class="locked-card card-8" id="card8">
+                <div class="card-content">
+                    <!-- Stage 1: Title (0-20%) -->
+                    <div class="content-stage stage-1">
+                        <h2 class="dynamic-title" style="font-size: clamp(3rem, 8vw, 6rem);">API Gateway</h2>
+                        <p class="dynamic-text" style="margin-top: 1rem; font-size: 1.2rem;">Universal Integration Layer</p>
+                    </div>
+
+                    <!-- Stage 2: Core Description (20-40%) -->
+                    <div class="content-stage stage-2">
+                        <h2 class="dynamic-title" style="font-size: clamp(2rem, 6vw, 4rem);">API Gateway</h2>
+                        <p class="dynamic-text" style="margin: 1.5rem 0; font-size: 1.1rem; max-width: 600px;">
+                            High-performance API gateway with intelligent routing, request transformation, and comprehensive GraphQL/REST/gRPC support for seamless integration.
+                        </p>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem;">
+                            <span class="feature-badge">REST API</span>
+                            <span class="feature-badge">GraphQL</span>
+                            <span class="feature-badge">gRPC</span>
+                            <span class="feature-badge">WebSocket</span>
+                        </div>
+                    </div>
+
+                    <!-- Stage 3: Technical Specs (40-60%) -->
+                    <div class="content-stage stage-3">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.5rem, 5vw, 3rem);">Integration Platform</h2>
+                        <div class="feature-grid" style="margin-top: 2rem;">
+                            <div class="feature-item">
+                                <h3>API Versioning</h3>
+                                <p>Seamless multi-version support with automatic deprecation warnings</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Request Transform</h3>
+                                <p>JSONata expressions enable complex payload transformations on-the-fly</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Rate Limiting</h3>
+                                <p>Token bucket and leaky bucket algorithms with per-user quotas</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>API Documentation</h3>
+                                <p>Auto-generated OpenAPI specs with interactive Swagger UI</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Mock Endpoints</h3>
+                                <p>Programmable mocks for testing and development environments</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Schema Validation</h3>
+                                <p>JSON Schema enforcement prevents malformed requests at the edge</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stage 4: Metrics (60-80%) -->
+                    <div class="content-stage stage-4">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.3rem, 4vw, 2.5rem);">Gateway Performance</h2>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1.5rem; margin-top: 2rem; max-width: 700px;">
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">500K</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">RPS/Node</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">&lt;5ms</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">P50 Latency</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">99.99%</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Uptime</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">100+</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Integrations</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem; max-width: 750px;">
+                            <span class="feature-badge">API Keys</span>
+                            <span class="feature-badge">OAuth Flows</span>
+                            <span class="feature-badge">CORS Handling</span>
+                            <span class="feature-badge">Request Caching</span>
+                            <span class="feature-badge">Response Compression</span>
+                            <span class="feature-badge">Batch Requests</span>
+                        </div>
+                    </div>
+
+                    <!-- Stage 5: Full Details (80-100%) -->
+                    <div class="content-stage stage-5">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.2rem, 3.5vw, 2rem);">Complete API Platform</h2>
+                        <p class="dynamic-text" style="margin: 1rem 0; max-width: 650px; font-size: 0.95rem; line-height: 1.7;">
+                            Enterprise API gateway built on Envoy proxy with custom extensions for advanced routing and transformation. Features include GraphQL federation with schema stitching, gRPC transcoding to JSON, WebSocket upgrade support, and server-sent events. Comprehensive API analytics with usage tracking, error attribution, and cost allocation. Built-in developer portal with API explorer, code generation, and SDK downloads for 10+ languages.
+                        </p>
+                        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem; max-width: 750px;">
+                            <span class="feature-badge">Envoy Proxy</span>
+                            <span class="feature-badge">GraphQL Federation</span>
+                            <span class="feature-badge">gRPC Transcoding</span>
+                            <span class="feature-badge">WebSocket</span>
+                            <span class="feature-badge">SSE Streaming</span>
+                            <span class="feature-badge">OpenAPI 3.1</span>
+                            <span class="feature-badge">AsyncAPI</span>
+                            <span class="feature-badge">SDK Generation</span>
+                            <span class="feature-badge">API Analytics</span>
+                            <span class="feature-badge">Usage Metering</span>
+                            <span class="feature-badge">Developer Portal</span>
+                            <span class="feature-badge">Sandbox Environment</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Card 9: Performance Optimization -->
+        <section class="card-stage" data-card="9">
+            <div class="locked-card card-9" id="card9">
+                <div class="card-content">
+                    <!-- Stage 1: Title (0-20%) -->
+                    <div class="content-stage stage-1">
+                        <h2 class="dynamic-title" style="font-size: clamp(3rem, 8vw, 6rem);">Performance</h2>
+                        <p class="dynamic-text" style="margin-top: 1rem; font-size: 1.2rem;">Extreme Speed Optimization</p>
+                    </div>
+
+                    <!-- Stage 2: Core Description (20-40%) -->
+                    <div class="content-stage stage-2">
+                        <h2 class="dynamic-title" style="font-size: clamp(2rem, 6vw, 4rem);">Performance</h2>
+                        <p class="dynamic-text" style="margin: 1.5rem 0; font-size: 1.1rem; max-width: 600px;">
+                            Cutting-edge performance optimization with intelligent caching, query optimization, connection pooling, and zero-copy networking for maximum throughput.
+                        </p>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem;">
+                            <span class="feature-badge">Multi-tier Cache</span>
+                            <span class="feature-badge">Query Optimizer</span>
+                            <span class="feature-badge">Connection Pool</span>
+                            <span class="feature-badge">Zero-Copy I/O</span>
+                        </div>
+                    </div>
+
+                    <!-- Stage 3: Technical Specs (40-60%) -->
+                    <div class="content-stage stage-3">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.5rem, 5vw, 3rem);">Optimization Engine</h2>
+                        <div class="feature-grid" style="margin-top: 2rem;">
+                            <div class="feature-item">
+                                <h3>Adaptive Cache</h3>
+                                <p>Machine learning predicts access patterns for intelligent prefetching</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Query Planner</h3>
+                                <p>Cost-based optimizer chooses optimal execution paths dynamically</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Memory Pool</h3>
+                                <p>Custom allocators reduce garbage collection pressure by 90%</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>SIMD Operations</h3>
+                                <p>Vectorized computations leverage AVX-512 for 8x faster processing</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>JIT Compilation</h3>
+                                <p>Hot paths compiled to native code at runtime for maximum speed</p>
+                            </div>
+                            <div class="feature-item">
+                                <h3>Kernel Bypass</h3>
+                                <p>DPDK and io_uring eliminate syscall overhead for zero-copy networking</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stage 4: Metrics (60-80%) -->
+                    <div class="content-stage stage-4">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.3rem, 4vw, 2.5rem);">Performance Metrics</h2>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1.5rem; margin-top: 2rem; max-width: 700px;">
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">100μs</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">P50 Query</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">98%</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Cache Hit</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">50GB/s</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Network I/O</p>
+                            </div>
+                            <div class="metric-card">
+                                <div class="stat-counter" style="font-size: 2.5rem;">5M</div>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">Ops/sec</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem; max-width: 750px;">
+                            <span class="feature-badge">CPU Affinity</span>
+                            <span class="feature-badge">NUMA Aware</span>
+                            <span class="feature-badge">Huge Pages</span>
+                            <span class="feature-badge">Lock-Free Queues</span>
+                            <span class="feature-badge">Batching</span>
+                            <span class="feature-badge">Prefetching</span>
+                        </div>
+                    </div>
+
+                    <!-- Stage 5: Full Details (80-100%) -->
+                    <div class="content-stage stage-5">
+                        <h2 class="dynamic-title" style="font-size: clamp(1.2rem, 3.5vw, 2rem);">Extreme Performance Platform</h2>
+                        <p class="dynamic-text" style="margin: 1rem 0; max-width: 650px; font-size: 0.95rem; line-height: 1.7;">
+                            Performance-obsessed architecture leveraging modern hardware capabilities. Features include Redis + Memcached multi-tier caching, read-through/write-through patterns, and cache coherency protocols. Query optimizer with statistics-based planning, index hints, and parallel execution. Zero-copy networking with DPDK, io_uring, and eBPF for packet filtering. Custom memory allocators, lock-free data structures, and SIMD-optimized hot paths deliver extreme throughput.
+                        </p>
+                        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem; max-width: 750px;">
+                            <span class="feature-badge">Redis Cluster</span>
+                            <span class="feature-badge">Memcached</span>
+                            <span class="feature-badge">CDN Edge Cache</span>
+                            <span class="feature-badge">Query Cache</span>
+                            <span class="feature-badge">Result Pagination</span>
+                            <span class="feature-badge">Index Optimization</span>
+                            <span class="feature-badge">DPDK Networking</span>
+                            <span class="feature-badge">io_uring</span>
+                            <span class="feature-badge">eBPF Filtering</span>
+                            <span class="feature-badge">AVX-512 SIMD</span>
+                            <span class="feature-badge">JIT Engine</span>
+                            <span class="feature-badge">Profile-Guided Optimization</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <section style="height: 100vh; display: flex; justify-content: center; align-items: center; text-align: center;">
+            <div>
+                <h2 class="dynamic-title">Built for Scale</h2>
+                <p class="dynamic-text">Production-hardened distributed architecture</p>
+            </div>
+        </section>
+    </div>
+
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: translateY(0); }
+            50% { opacity: 1; transform: translateY(5px); }
+        }
+    </style>
+
+    <script>
+        // ========== VIB3+ VISUALIZER SYSTEM ==========
+        // SESSION 1: Canvas Lifecycle + 4 Visualizer Classes
+
+        // Card-to-Visualizer Mapping Configuration
+        // HTML cards are numbered 1-9, so we use those keys
+        const CARD_VISUALIZER_CONFIG = {
+            1: { type: 'QUANTUM', hue: 210, intensity: 0.5, gridDensity: 45, geometry: 0 },    // Precision
+            2: { type: 'HOLOGRAPHIC', hue: 30, intensity: 0.6, gridDensity: 35, geometry: 3 }, // Consensus
+            3: { type: 'QUANTUM', hue: 130, intensity: 0.7, gridDensity: 50, geometry: 2 },    // Execution
+            4: { type: 'POLYCHORA', hue: 280, intensity: 0.5, gridDensity: 40, geometry: 1 },  // Storage
+            5: { type: 'HOLOGRAPHIC', hue: 190, intensity: 0.6, gridDensity: 38, geometry: 4 },// Network
+            6: { type: 'POLYCHORA', hue: 355, intensity: 0.7, gridDensity: 42, geometry: 7 },  // Security
+            7: { type: 'HOLOGRAPHIC', hue: 210, intensity: 0.6, gridDensity: 36, geometry: 5 },// Monitoring
+            8: { type: 'FACETED', hue: 90, intensity: 0.4, gridDensity: 25, geometry: 6 },     // API
+            9: { type: 'QUANTUM', hue: 310, intensity: 0.7, gridDensity: 55, geometry: 2 }     // Performance
+        };
+
+        // === PERFORMANCE MONITORING SYSTEM ===
+
+        // Performance Monitor - tracks FPS and frame time
+        class PerformanceMonitor {
+            constructor() {
+                this.fps = 60;
+                this.frameTime = 0;
+                this.lastFrameTime = performance.now();
+                this.frames = [];
+                this.maxFrames = 60; // Track last 60 frames for average
+            }
+
+            update() {
+                const now = performance.now();
+                this.frameTime = now - this.lastFrameTime;
+                this.lastFrameTime = now;
+
+                this.frames.push(this.frameTime);
+                if (this.frames.length > this.maxFrames) {
+                    this.frames.shift();
+                }
+
+                const avgFrameTime = this.frames.reduce((a, b) => a + b, 0) / this.frames.length;
+                this.fps = Math.round(1000 / avgFrameTime);
+            }
+
+            shouldReduceQuality() {
+                return this.fps < 25;
+            }
+
+            shouldIncreaseQuality() {
+                return this.fps > 55 && this.frames.length >= this.maxFrames;
+            }
+
+            getAverageFPS() {
+                return this.fps;
+            }
+
+            getFrameTime() {
+                return this.frameTime;
+            }
+        }
+
+        // Adaptive Quality Manager - dynamically adjusts quality based on performance
+        class AdaptiveQualityManager {
+            constructor(canvasManager) {
+                this.canvasManager = canvasManager;
+                this.perfMonitor = new PerformanceMonitor();
+                this.quality = 'high';  // high, medium, low
+                this.checkInterval = 2000; // Check every 2 seconds
+                this.lastCheck = Date.now();
+                this.originalParams = new Map(); // Store original parameters
+            }
+
+            update() {
+                this.perfMonitor.update();
+
+                const now = Date.now();
+                if (now - this.lastCheck < this.checkInterval) {
+                    return; // Don't check too frequently
+                }
+                this.lastCheck = now;
+
+                if (this.perfMonitor.shouldReduceQuality() && this.quality !== 'low') {
+                    this.reduceQuality();
+                } else if (this.perfMonitor.shouldIncreaseQuality() && this.quality !== 'high') {
+                    this.increaseQuality();
+                }
+            }
+
+            reduceQuality() {
+                const viz = this.canvasManager.activeVisualizers.get('viz-primary');
+                if (!viz) return;
+
+                // Store original params if not already stored
+                if (!this.originalParams.has('viz-primary')) {
+                    this.originalParams.set('viz-primary', { ...viz.params });
+                }
+
+                if (this.quality === 'high') {
+                    this.quality = 'medium';
+                    console.log('[AdaptiveQuality] Reducing to MEDIUM quality (FPS:', this.perfMonitor.fps, ')');
+                    this.applyMediumQuality(viz);
+                } else if (this.quality === 'medium') {
+                    this.quality = 'low';
+                    console.log('[AdaptiveQuality] Reducing to LOW quality (FPS:', this.perfMonitor.fps, ')');
+                    this.applyLowQuality(viz);
+                }
+            }
+
+            increaseQuality() {
+                const viz = this.canvasManager.activeVisualizers.get('viz-primary');
+                if (!viz) return;
+
+                if (this.quality === 'low') {
+                    this.quality = 'medium';
+                    console.log('[AdaptiveQuality] Increasing to MEDIUM quality (FPS:', this.perfMonitor.fps, ')');
+                    this.applyMediumQuality(viz);
+                } else if (this.quality === 'medium') {
+                    this.quality = 'high';
+                    console.log('[AdaptiveQuality] Increasing to HIGH quality (FPS:', this.perfMonitor.fps, ')');
+                    this.applyHighQuality(viz);
+                }
+            }
+
+            applyHighQuality(viz) {
+                const original = this.originalParams.get('viz-primary');
+                if (original) {
+                    viz.updateParameters({
+                        gridDensity: original.gridDensity
+                    });
+                }
+            }
+
+            applyMediumQuality(viz) {
+                const original = this.originalParams.get('viz-primary');
+                const baseGrid = original ? original.gridDensity : viz.params.gridDensity;
+                viz.updateParameters({
+                    gridDensity: Math.max(15, Math.round(baseGrid * 0.7))
+                });
+            }
+
+            applyLowQuality(viz) {
+                const original = this.originalParams.get('viz-primary');
+                const baseGrid = original ? original.gridDensity : viz.params.gridDensity;
+                viz.updateParameters({
+                    gridDensity: Math.max(10, Math.round(baseGrid * 0.5))
+                });
+            }
+
+            getQualityLevel() {
+                return this.quality;
+            }
+
+            getCurrentFPS() {
+                return this.perfMonitor.fps;
+            }
+        }
+
+        // Detect mobile devices
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const isTablet = /(iPad|Android(?!.*Mobile))/i.test(navigator.userAgent);
+        const targetFPS = isMobile ? 30 : 60;
+        const targetFrameTime = 1000 / targetFPS;
+
+        console.log('[Performance] Device:', isMobile ? 'Mobile' : (isTablet ? 'Tablet' : 'Desktop'), '| Target FPS:', targetFPS);
+
+        // Base Visualizer Class
+        class BaseVisualizer {
+            constructor(canvasId) {
+                this.canvasId = canvasId;
+                this.canvas = null;
+                this.gl = null;
+                this.isActive = false;
+                this.animationFrameId = null;
+                this.startTime = Date.now();
+                this.program = null;
+                this.buffer = null;
+                this.uniforms = {};
+
+                // 11 Core Parameters
+                this.params = {
+                    geometry: 0,
+                    rot4dXW: 0.0,
+                    rot4dYW: 0.0,
+                    rot4dZW: 0.0,
+                    gridDensity: 20,
+                    morphFactor: 1.0,
+                    chaos: 0.1,
+                    speed: 0.4,
+                    hue: 200,
+                    intensity: 0.5,
+                    saturation: 0.8
+                };
+
+                this.targetParams = { ...this.params };
+            }
+
+            async init() {
+                this.canvas = document.getElementById(this.canvasId);
+                if (!this.canvas) {
+                    throw new Error(`Canvas ${this.canvasId} not found`);
+                }
+
+                // Try WebGL2 first, fallback to WebGL1
+                this.gl = this.canvas.getContext('webgl2', {
+                    antialias: false,
+                    alpha: true,
+                    powerPreference: 'high-performance',
+                    preserveDrawingBuffer: false
+                });
+
+                if (!this.gl) {
+                    this.gl = this.canvas.getContext('webgl', {
+                        antialias: false,
+                        alpha: true,
+                        powerPreference: 'high-performance',
+                        preserveDrawingBuffer: false
+                    });
+                }
+
+                if (!this.gl) {
+                    throw new Error('WebGL not supported');
+                }
+
+                this.gl.enable(this.gl.BLEND);
+                this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+
+                await this.initShaders();
+                this.initBuffers();
+                this.resize();
+
+                window.addEventListener('resize', () => this.resize());
+            }
+
+            async initShaders() {
+                throw new Error('initShaders must be implemented in subclass');
+            }
+
+            createProgram(vertexSource, fragmentSource) {
+                const vertexShader = this.createShader(this.gl.VERTEX_SHADER, vertexSource);
+                const fragmentShader = this.createShader(this.gl.FRAGMENT_SHADER, fragmentSource);
+
+                const program = this.gl.createProgram();
+                this.gl.attachShader(program, vertexShader);
+                this.gl.attachShader(program, fragmentShader);
+                this.gl.linkProgram(program);
+
+                if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
+                    console.error('Program link error:', this.gl.getProgramInfoLog(program));
+                    return null;
+                }
+
+                return program;
+            }
+
+            createShader(type, source) {
+                const shader = this.gl.createShader(type);
+                this.gl.shaderSource(shader, source);
+                this.gl.compileShader(shader);
+
+                if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+                    console.error('Shader compile error:', this.gl.getShaderInfoLog(shader));
+                    return null;
+                }
+
+                return shader;
+            }
+
+            initBuffers() {
+                const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+                this.buffer = this.gl.createBuffer();
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffer);
+                this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
+
+                const positionLocation = this.gl.getAttribLocation(this.program, 'a_position');
+                this.gl.enableVertexAttribArray(positionLocation);
+                this.gl.vertexAttribPointer(positionLocation, 2, this.gl.FLOAT, false, 0, 0);
+            }
+
+            resize() {
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                this.canvas.width = this.canvas.clientWidth * dpr;
+                this.canvas.height = this.canvas.clientHeight * dpr;
+                this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            updateParameters(params) {
+                Object.assign(this.targetParams, params);
+            }
+
+            lerpParams() {
+                const factor = 0.05;
+                for (let key in this.targetParams) {
+                    if (typeof this.params[key] === 'number') {
+                        this.params[key] += (this.targetParams[key] - this.params[key]) * factor;
+                    }
+                }
+            }
+
+            start() {
+                this.isActive = true;
+                this.canvas.classList.add('active');
+                this.renderLoop();
+            }
+
+            stop() {
+                this.isActive = false;
+                this.canvas.classList.remove('active');
+                if (this.animationFrameId) {
+                    cancelAnimationFrame(this.animationFrameId);
+                    this.animationFrameId = null;
+                }
+            }
+
+            renderLoop() {
+                if (!this.isActive) return;
+
+                this.lerpParams();
+                this.render();
+
+                this.animationFrameId = requestAnimationFrame(() => this.renderLoop());
+            }
+
+            render() {
+                throw new Error('render must be implemented in subclass');
+            }
+
+            destroy() {
+                this.stop();
+
+                // Lose WebGL context (critical for memory)
+                const loseContext = this.gl?.getExtension('WEBGL_lose_context');
+                if (loseContext) {
+                    loseContext.loseContext();
+                }
+
+                // Clear canvas
+                if (this.canvas) {
+                    this.canvas.width = 0;
+                    this.canvas.height = 0;
+                }
+
+                // Clear references
+                this.gl = null;
+                this.canvas = null;
+                this.program = null;
+                this.buffer = null;
+                this.uniforms = {};
+            }
+        }
+
+        // Faceted Visualizer (Simple 2D Patterns)
+        class FacetedVisualizer extends BaseVisualizer {
+            async initShaders() {
+                const vertexShader = `
+                    attribute vec2 a_position;
+                    void main() {
+                        gl_Position = vec4(a_position, 0.0, 1.0);
+                    }
+                `;
+
+                const fragmentShader = `
+                    precision highp float;
+                    uniform vec2 u_resolution;
+                    uniform float u_time;
+                    uniform float u_gridDensity;
+                    uniform float u_chaos;
+                    uniform float u_hue;
+                    uniform float u_intensity;
+                    uniform float u_saturation;
+                    uniform float u_morphFactor;
+
+                    float circle(vec2 p, float r) {
+                        return length(p) - r;
+                    }
+
+                    float box(vec2 p, vec2 b) {
+                        vec2 d = abs(p) - b;
+                        return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
+                    }
+
+                    vec3 hsv2rgb(vec3 c) {
+                        vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+                        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+                    }
+
+                    void main() {
+                        vec2 uv = (gl_FragCoord.xy - u_resolution * 0.5) / min(u_resolution.x, u_resolution.y);
+                        vec2 p = uv * 2.5;
+
+                        // Repeating grid
+                        vec2 id = floor(p * u_gridDensity * 0.1);
+                        p = fract(p * u_gridDensity * 0.1) - 0.5;
+
+                        // Animate with time
+                        float timeSpeed = u_time * 0.0001;
+                        p += vec2(sin(id.y + timeSpeed), cos(id.x + timeSpeed)) * u_chaos * 0.2;
+
+                        // Distance field (mix circle and box based on morphFactor)
+                        float d1 = circle(p, 0.25);
+                        float d2 = box(p, vec2(0.22));
+                        float d = mix(d1, d2, sin(timeSpeed + id.x * 0.5) * 0.5 + 0.5);
+
+                        // Color
+                        float brightness = smoothstep(0.02, 0.0, d) * u_intensity;
+                        vec3 color = hsv2rgb(vec3(u_hue / 360.0, u_saturation, 1.0));
+
+                        gl_FragColor = vec4(color * brightness, brightness * 0.7);
+                    }
+                `;
+
+                this.program = this.createProgram(vertexShader, fragmentShader);
+                if (!this.program) return;
+
+                this.uniforms = {
+                    resolution: this.gl.getUniformLocation(this.program, 'u_resolution'),
+                    time: this.gl.getUniformLocation(this.program, 'u_time'),
+                    gridDensity: this.gl.getUniformLocation(this.program, 'u_gridDensity'),
+                    chaos: this.gl.getUniformLocation(this.program, 'u_chaos'),
+                    hue: this.gl.getUniformLocation(this.program, 'u_hue'),
+                    intensity: this.gl.getUniformLocation(this.program, 'u_intensity'),
+                    saturation: this.gl.getUniformLocation(this.program, 'u_saturation'),
+                    morphFactor: this.gl.getUniformLocation(this.program, 'u_morphFactor')
+                };
+            }
+
+            render() {
+                if (!this.program || !this.gl) return;
+
+                this.gl.useProgram(this.program);
+                this.gl.clearColor(0, 0, 0, 0);
+                this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+
+                const time = Date.now() - this.startTime;
+                this.gl.uniform2f(this.uniforms.resolution, this.canvas.width, this.canvas.height);
+                this.gl.uniform1f(this.uniforms.time, time);
+                this.gl.uniform1f(this.uniforms.gridDensity, this.params.gridDensity);
+                this.gl.uniform1f(this.uniforms.chaos, this.params.chaos);
+                this.gl.uniform1f(this.uniforms.hue, this.params.hue);
+                this.gl.uniform1f(this.uniforms.intensity, this.params.intensity);
+                this.gl.uniform1f(this.uniforms.saturation, this.params.saturation);
+                this.gl.uniform1f(this.uniforms.morphFactor, this.params.morphFactor);
+
+                this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+            }
+        }
+
+        // Quantum Visualizer (3D Lattice with 4D Rotations)
+        class QuantumVisualizer extends BaseVisualizer {
+            async initShaders() {
+                const vertexShader = `
+                    attribute vec2 a_position;
+                    void main() {
+                        gl_Position = vec4(a_position, 0.0, 1.0);
+                    }
+                `;
+
+                const fragmentShader = `
+                    precision highp float;
+                    uniform vec2 u_resolution;
+                    uniform float u_time;
+                    uniform float u_gridDensity;
+                    uniform float u_chaos;
+                    uniform float u_speed;
+                    uniform float u_hue;
+                    uniform float u_intensity;
+                    uniform float u_saturation;
+                    uniform float u_morphFactor;
+                    uniform float u_rot4dXW;
+                    uniform float u_rot4dYW;
+                    uniform float u_rot4dZW;
+
+                    mat4 rotateXW(float theta) {
+                        float c = cos(theta);
+                        float s = sin(theta);
+                        return mat4(
+                            c, 0.0, 0.0, -s,
+                            0.0, 1.0, 0.0, 0.0,
+                            0.0, 0.0, 1.0, 0.0,
+                            s, 0.0, 0.0, c
+                        );
+                    }
+
+                    mat4 rotateYW(float theta) {
+                        float c = cos(theta);
+                        float s = sin(theta);
+                        return mat4(
+                            1.0, 0.0, 0.0, 0.0,
+                            0.0, c, 0.0, -s,
+                            0.0, 0.0, 1.0, 0.0,
+                            0.0, s, 0.0, c
+                        );
+                    }
+
+                    mat4 rotateZW(float theta) {
+                        float c = cos(theta);
+                        float s = sin(theta);
+                        return mat4(
+                            1.0, 0.0, 0.0, 0.0,
+                            0.0, 1.0, 0.0, 0.0,
+                            0.0, 0.0, c, -s,
+                            0.0, 0.0, s, c
+                        );
+                    }
+
+                    vec3 hsv2rgb(vec3 c) {
+                        vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+                        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+                    }
+
+                    vec3 project4Dto3D(vec4 p) {
+                        float w = 2.8 / (2.8 + p.w);
+                        return vec3(p.x * w, p.y * w, p.z * w);
+                    }
+
+                    float sphereLattice(vec3 p, float gridSize) {
+                        vec3 cell = fract(p * gridSize) - 0.5;
+                        return 1.0 - smoothstep(0.12, 0.28, length(cell));
+                    }
+
+                    void main() {
+                        vec2 uv = (gl_FragCoord.xy - u_resolution.xy * 0.5) / min(u_resolution.x, u_resolution.y);
+                        float timeSpeed = u_time * 0.0001 * u_speed;
+
+                        // Initialize 4D position
+                        vec4 pos4d = vec4(
+                            uv * 3.2,
+                            sin(timeSpeed * 2.8) * u_morphFactor,
+                            cos(timeSpeed * 2.2) * u_morphFactor
+                        );
+
+                        // Apply 4D rotations
+                        pos4d = rotateXW(u_rot4dXW + timeSpeed * 0.45) * pos4d;
+                        pos4d = rotateYW(u_rot4dYW + timeSpeed * 0.35) * pos4d;
+                        pos4d = rotateZW(u_rot4dZW + timeSpeed * 0.25) * pos4d;
+
+                        // Project to 3D
+                        vec3 pos3d = project4Dto3D(pos4d);
+
+                        // Lattice calculation
+                        float value = sphereLattice(pos3d, u_gridDensity * 0.085);
+
+                        // Add chaos/noise
+                        float noise = sin(pos4d.x * 7.0) * cos(pos4d.y * 9.0) * sin(pos4d.w * 5.0);
+                        value += noise * u_chaos;
+
+                        // Calculate final intensity
+                        float finalIntensity = pow(1.0 - clamp(abs(value), 0.0, 1.0), 2.2) * u_intensity;
+
+                        // Dynamic color
+                        vec3 color = hsv2rgb(vec3(
+                            u_hue / 360.0 + timeSpeed * 0.025,
+                            u_saturation,
+                            0.95
+                        ));
+
+                        gl_FragColor = vec4(color * finalIntensity, finalIntensity * 0.65);
+                    }
+                `;
+
+                this.program = this.createProgram(vertexShader, fragmentShader);
+                if (!this.program) return;
+
+                this.uniforms = {
+                    resolution: this.gl.getUniformLocation(this.program, 'u_resolution'),
+                    time: this.gl.getUniformLocation(this.program, 'u_time'),
+                    gridDensity: this.gl.getUniformLocation(this.program, 'u_gridDensity'),
+                    chaos: this.gl.getUniformLocation(this.program, 'u_chaos'),
+                    speed: this.gl.getUniformLocation(this.program, 'u_speed'),
+                    hue: this.gl.getUniformLocation(this.program, 'u_hue'),
+                    intensity: this.gl.getUniformLocation(this.program, 'u_intensity'),
+                    saturation: this.gl.getUniformLocation(this.program, 'u_saturation'),
+                    morphFactor: this.gl.getUniformLocation(this.program, 'u_morphFactor'),
+                    rot4dXW: this.gl.getUniformLocation(this.program, 'u_rot4dXW'),
+                    rot4dYW: this.gl.getUniformLocation(this.program, 'u_rot4dYW'),
+                    rot4dZW: this.gl.getUniformLocation(this.program, 'u_rot4dZW')
+                };
+            }
+
+            render() {
+                if (!this.program || !this.gl) return;
+
+                this.gl.useProgram(this.program);
+                this.gl.clearColor(0, 0, 0, 0);
+                this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+
+                const time = Date.now() - this.startTime;
+                this.gl.uniform2f(this.uniforms.resolution, this.canvas.width, this.canvas.height);
+                this.gl.uniform1f(this.uniforms.time, time);
+                this.gl.uniform1f(this.uniforms.gridDensity, this.params.gridDensity);
+                this.gl.uniform1f(this.uniforms.chaos, this.params.chaos);
+                this.gl.uniform1f(this.uniforms.speed, this.params.speed);
+                this.gl.uniform1f(this.uniforms.hue, this.params.hue);
+                this.gl.uniform1f(this.uniforms.intensity, this.params.intensity);
+                this.gl.uniform1f(this.uniforms.saturation, this.params.saturation);
+                this.gl.uniform1f(this.uniforms.morphFactor, this.params.morphFactor);
+                this.gl.uniform1f(this.uniforms.rot4dXW, this.params.rot4dXW);
+                this.gl.uniform1f(this.uniforms.rot4dYW, this.params.rot4dYW);
+                this.gl.uniform1f(this.uniforms.rot4dZW, this.params.rot4dZW);
+
+                this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+            }
+        }
+
+        // Holographic Visualizer (Audio-Reactive Patterns)
+        class HolographicVisualizer extends BaseVisualizer {
+            async initShaders() {
+                const vertexShader = `
+                    attribute vec2 a_position;
+                    void main() {
+                        gl_Position = vec4(a_position, 0.0, 1.0);
+                    }
+                `;
+
+                const fragmentShader = `
+                    precision highp float;
+                    uniform vec2 u_resolution;
+                    uniform float u_time;
+                    uniform float u_gridDensity;
+                    uniform float u_chaos;
+                    uniform float u_speed;
+                    uniform float u_hue;
+                    uniform float u_intensity;
+                    uniform float u_saturation;
+                    uniform float u_morphFactor;
+
+                    vec3 hsv2rgb(vec3 c) {
+                        vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+                        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+                    }
+
+                    // Holographic interference pattern
+                    float hologram(vec2 p, float time) {
+                        float d = 0.0;
+                        for (int i = 0; i < 3; i++) {
+                            float fi = float(i);
+                            vec2 offset = vec2(sin(time * 0.5 + fi), cos(time * 0.7 + fi));
+                            d += sin(length(p + offset * u_morphFactor) * u_gridDensity * 0.5 - time * 2.0);
+                        }
+                        return d / 3.0;
+                    }
+
+                    void main() {
+                        vec2 uv = (gl_FragCoord.xy - u_resolution.xy * 0.5) / min(u_resolution.x, u_resolution.y);
+                        vec2 p = uv * 2.0;
+
+                        float timeSpeed = u_time * 0.0001 * u_speed;
+
+                        // Interference pattern
+                        float pattern = hologram(p, timeSpeed);
+
+                        // Add shimmer effect
+                        float shimmer = sin(p.x * 10.0 + timeSpeed * 3.0) * cos(p.y * 10.0 + timeSpeed * 2.0);
+                        pattern += shimmer * u_chaos * 0.5;
+
+                        // Calculate intensity
+                        float finalIntensity = (pattern * 0.5 + 0.5) * u_intensity;
+
+                        // Iridescent color shift
+                        float colorShift = (p.x + p.y) * 0.2 + timeSpeed * 0.5;
+                        vec3 color = hsv2rgb(vec3(
+                            mod(u_hue / 360.0 + colorShift, 1.0),
+                            u_saturation,
+                            0.9
+                        ));
+
+                        gl_FragColor = vec4(color * finalIntensity, finalIntensity * 0.6);
+                    }
+                `;
+
+                this.program = this.createProgram(vertexShader, fragmentShader);
+                if (!this.program) return;
+
+                this.uniforms = {
+                    resolution: this.gl.getUniformLocation(this.program, 'u_resolution'),
+                    time: this.gl.getUniformLocation(this.program, 'u_time'),
+                    gridDensity: this.gl.getUniformLocation(this.program, 'u_gridDensity'),
+                    chaos: this.gl.getUniformLocation(this.program, 'u_chaos'),
+                    speed: this.gl.getUniformLocation(this.program, 'u_speed'),
+                    hue: this.gl.getUniformLocation(this.program, 'u_hue'),
+                    intensity: this.gl.getUniformLocation(this.program, 'u_intensity'),
+                    saturation: this.gl.getUniformLocation(this.program, 'u_saturation'),
+                    morphFactor: this.gl.getUniformLocation(this.program, 'u_morphFactor')
+                };
+            }
+
+            render() {
+                if (!this.program || !this.gl) return;
+
+                this.gl.useProgram(this.program);
+                this.gl.clearColor(0, 0, 0, 0);
+                this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+
+                const time = Date.now() - this.startTime;
+                this.gl.uniform2f(this.uniforms.resolution, this.canvas.width, this.canvas.height);
+                this.gl.uniform1f(this.uniforms.time, time);
+                this.gl.uniform1f(this.uniforms.gridDensity, this.params.gridDensity);
+                this.gl.uniform1f(this.uniforms.chaos, this.params.chaos);
+                this.gl.uniform1f(this.uniforms.speed, this.params.speed);
+                this.gl.uniform1f(this.uniforms.hue, this.params.hue);
+                this.gl.uniform1f(this.uniforms.intensity, this.params.intensity);
+                this.gl.uniform1f(this.uniforms.saturation, this.params.saturation);
+                this.gl.uniform1f(this.uniforms.morphFactor, this.params.morphFactor);
+
+                this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+            }
+        }
+
+        // Polychora Visualizer (4D Polytopes - Simplified)
+        class PolychoraVisualizer extends BaseVisualizer {
+            async initShaders() {
+                const vertexShader = `
+                    attribute vec2 a_position;
+                    void main() {
+                        gl_Position = vec4(a_position, 0.0, 1.0);
+                    }
+                `;
+
+                const fragmentShader = `
+                    precision highp float;
+                    uniform vec2 u_resolution;
+                    uniform float u_time;
+                    uniform float u_gridDensity;
+                    uniform float u_chaos;
+                    uniform float u_speed;
+                    uniform float u_hue;
+                    uniform float u_intensity;
+                    uniform float u_saturation;
+                    uniform float u_morphFactor;
+                    uniform float u_rot4dXW;
+                    uniform float u_rot4dYW;
+                    uniform float u_rot4dZW;
+
+                    // 4D rotation matrices
+                    mat4 rotateXW(float theta) {
+                        float c = cos(theta);
+                        float s = sin(theta);
+                        return mat4(c, 0.0, 0.0, -s, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, s, 0.0, 0.0, c);
+                    }
+
+                    mat4 rotateYW(float theta) {
+                        float c = cos(theta);
+                        float s = sin(theta);
+                        return mat4(1.0, 0.0, 0.0, 0.0, 0.0, c, 0.0, -s, 0.0, 0.0, 1.0, 0.0, 0.0, s, 0.0, c);
+                    }
+
+                    vec3 hsv2rgb(vec3 c) {
+                        vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+                        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+                    }
+
+                    // Tesseract distance function
+                    float tesseract4d(vec4 p) {
+                        vec4 d = abs(p) - vec4(1.0);
+                        return min(max(max(max(d.x, d.y), d.z), d.w), 0.0) + length(max(d, 0.0));
+                    }
+
+                    vec3 project4Dto3D(vec4 p) {
+                        float w = 3.0 / (3.0 + p.w);
+                        return vec3(p.x * w, p.y * w, p.z * w);
+                    }
+
+                    void main() {
+                        vec2 uv = (gl_FragCoord.xy - u_resolution.xy * 0.5) / min(u_resolution.x, u_resolution.y);
+                        float timeSpeed = u_time * 0.0001 * u_speed;
+
+                        // 4D position
+                        vec4 pos4d = vec4(uv * 2.0, sin(timeSpeed) * u_morphFactor, cos(timeSpeed) * u_morphFactor);
+
+                        // Apply rotations
+                        pos4d = rotateXW(u_rot4dXW + timeSpeed * 0.3) * pos4d;
+                        pos4d = rotateYW(u_rot4dYW + timeSpeed * 0.2) * pos4d;
+
+                        // Distance to tessract
+                        float d = tesseract4d(pos4d * 0.5);
+
+                        // Edge detection
+                        float edge = smoothstep(0.02, 0.0, abs(d) - 0.01);
+
+                        // Glassmorphic effect
+                        float glass = 1.0 - smoothstep(0.0, 0.5, abs(d));
+
+                        float finalIntensity = (edge * 0.8 + glass * 0.3) * u_intensity;
+
+                        // Chromatic color
+                        vec3 color = hsv2rgb(vec3(
+                            u_hue / 360.0,
+                            u_saturation,
+                            0.95
+                        ));
+
+                        gl_FragColor = vec4(color * finalIntensity, finalIntensity * 0.7);
+                    }
+                `;
+
+                this.program = this.createProgram(vertexShader, fragmentShader);
+                if (!this.program) return;
+
+                this.uniforms = {
+                    resolution: this.gl.getUniformLocation(this.program, 'u_resolution'),
+                    time: this.gl.getUniformLocation(this.program, 'u_time'),
+                    gridDensity: this.gl.getUniformLocation(this.program, 'u_gridDensity'),
+                    chaos: this.gl.getUniformLocation(this.program, 'u_chaos'),
+                    speed: this.gl.getUniformLocation(this.program, 'u_speed'),
+                    hue: this.gl.getUniformLocation(this.program, 'u_hue'),
+                    intensity: this.gl.getUniformLocation(this.program, 'u_intensity'),
+                    saturation: this.gl.getUniformLocation(this.program, 'u_saturation'),
+                    morphFactor: this.gl.getUniformLocation(this.program, 'u_morphFactor'),
+                    rot4dXW: this.gl.getUniformLocation(this.program, 'u_rot4dXW'),
+                    rot4dYW: this.gl.getUniformLocation(this.program, 'u_rot4dYW'),
+                    rot4dZW: this.gl.getUniformLocation(this.program, 'u_rot4dZW')
+                };
+            }
+
+            render() {
+                if (!this.program || !this.gl) return;
+
+                this.gl.useProgram(this.program);
+                this.gl.clearColor(0, 0, 0, 0);
+                this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+
+                const time = Date.now() - this.startTime;
+                this.gl.uniform2f(this.uniforms.resolution, this.canvas.width, this.canvas.height);
+                this.gl.uniform1f(this.uniforms.time, time);
+                this.gl.uniform1f(this.uniforms.gridDensity, this.params.gridDensity);
+                this.gl.uniform1f(this.uniforms.chaos, this.params.chaos);
+                this.gl.uniform1f(this.uniforms.speed, this.params.speed);
+                this.gl.uniform1f(this.uniforms.hue, this.params.hue);
+                this.gl.uniform1f(this.uniforms.intensity, this.params.intensity);
+                this.gl.uniform1f(this.uniforms.saturation, this.params.saturation);
+                this.gl.uniform1f(this.uniforms.morphFactor, this.params.morphFactor);
+                this.gl.uniform1f(this.uniforms.rot4dXW, this.params.rot4dXW);
+                this.gl.uniform1f(this.uniforms.rot4dYW, this.params.rot4dYW);
+                this.gl.uniform1f(this.uniforms.rot4dZW, this.params.rot4dZW);
+
+                this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+            }
+        }
+
+        // SESSION 3: Easing Functions Library
+        const Easing = {
+            linear: t => t,
+
+            easeInOutCubic: t => t < 0.5
+                ? 4 * t * t * t
+                : 1 - Math.pow(-2 * t + 2, 3) / 2,
+
+            easeOutExpo: t => t === 1 ? 1 : 1 - Math.pow(2, -10 * t),
+
+            easeInOutQuart: t => t < 0.5
+                ? 8 * t * t * t * t
+                : 1 - Math.pow(-2 * t + 2, 4) / 2,
+
+            easeOutBack: t => {
+                const c1 = 1.70158;
+                const c3 = c1 + 1;
+                return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+            },
+
+            easeOutElastic: t => {
+                const c4 = (2 * Math.PI) / 3;
+                return t === 0 ? 0 : t === 1 ? 1
+                    : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
+            },
+
+            easeOutCirc: t => Math.sqrt(1 - Math.pow(t - 1, 2))
+        };
+
+        // Canvas Lifecycle Manager (Enhanced with Crossfade)
+        class CanvasLifecycleManager {
+            constructor() {
+                this.maxActive = 2;
+                this.activeVisualizers = new Map();
+                this.visualizerClasses = {
+                    'FACETED': FacetedVisualizer,
+                    'QUANTUM': QuantumVisualizer,
+                    'HOLOGRAPHIC': HolographicVisualizer,
+                    'POLYCHORA': PolychoraVisualizer
+                };
+                this.isTransitioning = false;
+            }
+
+            async initializeVisualizer(type, canvasId, params) {
+                const existing = this.activeVisualizers.get(canvasId);
+
+                // Same type - just update parameters with easing
+                if (existing && existing.type === type) {
+                    this.updateParametersSmooth(existing, params);
+                    return existing;
+                }
+
+                // Different type - use crossfade if primary canvas
+                if (existing && canvasId === 'viz-primary') {
+                    return await this.crossfadeTransition(type, params);
+                }
+
+                // No existing or secondary canvas - direct creation
+                if (existing) {
+                    await this.destroy(canvasId);
+                }
+
+                return await this.createVisualizer(type, canvasId, params);
+            }
+
+            async crossfadeTransition(newType, params) {
+                if (this.isTransitioning) return;
+                this.isTransitioning = true;
+
+                const primaryViz = this.activeVisualizers.get('viz-primary');
+
+                // Step 1: Create new visualizer on secondary canvas
+                const secondaryViz = await this.createVisualizer(newType, 'viz-secondary', params);
+                if (!secondaryViz) {
+                    this.isTransitioning = false;
+                    return null;
+                }
+
+                // Step 2: Crossfade animation (800ms)
+                await this.animateCrossfade('viz-primary', 'viz-secondary', 800);
+
+                // Step 3: Swap references
+                this.activeVisualizers.set('viz-primary', secondaryViz);
+
+                // Step 4: Destroy old visualizer
+                if (primaryViz) {
+                    primaryViz.destroy();
+                }
+                this.activeVisualizers.delete('viz-secondary');
+
+                // Step 5: Update canvas IDs
+                secondaryViz.canvasId = 'viz-primary';
+                secondaryViz.canvas = document.getElementById('viz-primary');
+
+                this.isTransitioning = false;
+                return secondaryViz;
+            }
+
+            async animateCrossfade(fromId, toId, duration) {
+                const fromCanvas = document.getElementById(fromId);
+                const toCanvas = document.getElementById(toId);
+
+                // Set up transition
+                toCanvas.classList.add('active');
+                toCanvas.style.opacity = '0';
+
+                // Use requestAnimationFrame for smooth animation
+                const startTime = performance.now();
+
+                return new Promise(resolve => {
+                    const animate = (currentTime) => {
+                        const elapsed = currentTime - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        const eased = Easing.easeInOutQuart(progress);
+
+                        // Crossfade
+                        fromCanvas.style.opacity = String(1 - eased);
+                        toCanvas.style.opacity = String(eased);
+
+                        if (progress < 1) {
+                            requestAnimationFrame(animate);
+                        } else {
+                            fromCanvas.classList.remove('active');
+                            fromCanvas.style.opacity = '0';
+                            toCanvas.style.opacity = '1';
+                            resolve();
+                        }
+                    };
+
+                    requestAnimationFrame(animate);
+                });
+            }
+
+            async createVisualizer(type, canvasId, params) {
+                const VisualizerClass = this.visualizerClasses[type];
+                if (!VisualizerClass) {
+                    console.error(`Unknown visualizer type: ${type}`);
+                    return null;
+                }
+
+                const viz = new VisualizerClass(canvasId);
+                viz.type = type;
+
+                try {
+                    await viz.init();
+                    viz.updateParameters(params);
+                    viz.start();
+
+                    this.activeVisualizers.set(canvasId, viz);
+                    console.log(`✓ Initialized ${type} visualizer on ${canvasId}`);
+                    return viz;
+                } catch (error) {
+                    console.error(`Failed to initialize ${type}:`, error);
+                    return null;
+                }
+            }
+
+            updateParametersSmooth(viz, params) {
+                // Smooth parameter updates with easing
+                viz.updateParameters(params);
+            }
+
+            async destroy(canvasId) {
+                const viz = this.activeVisualizers.get(canvasId);
+                if (!viz) return;
+
+                viz.destroy();
+                this.activeVisualizers.delete(canvasId);
+
+                // Small delay for GPU cleanup
+                await new Promise(resolve => setTimeout(resolve, 50));
+                console.log(`✓ Destroyed visualizer on ${canvasId}`);
+            }
+
+            async transitionTo(cardIndex) {
+                const config = CARD_VISUALIZER_CONFIG[cardIndex];
+                if (!config) return;
+
+                await this.initializeVisualizer(config.type, 'viz-primary', {
+                    geometry: config.geometry,
+                    hue: config.hue,
+                    intensity: config.intensity,
+                    gridDensity: config.gridDensity,
+                    morphFactor: 1.0,
+                    chaos: 0.1,
+                    speed: 0.4,
+                    saturation: 0.8,
+                    rot4dXW: 0.0,
+                    rot4dYW: 0.0,
+                    rot4dZW: 0.0
+                });
+            }
+
+            updateVisualizerForProgress(cardIndex, progress) {
+                const config = CARD_VISUALIZER_CONFIG[cardIndex];
+                const viz = this.activeVisualizers.get('viz-primary');
+
+                if (!viz || !config) return;
+
+                // Progressive parameter changes with AGGRESSIVE easing (10-20x more dramatic)
+                const eased = Easing.easeInOutCubic(progress);
+                const easedElastic = Easing.easeOutElastic(progress);
+                const easedBack = Easing.easeOutBack(progress);
+
+                // 15-20x MORE DRAMATIC parameter changes
+                viz.updateParameters({
+                    // Grid density now varies from base to 3x base density
+                    gridDensity: config.gridDensity * (0.5 + eased * 2.5),
+
+                    // Intensity swings from 0.1 to 1.5 (15x original range)
+                    intensity: Math.max(0.1, config.intensity + (eased * 1.2) - 0.3),
+
+                    // Hue shifts up to 180 degrees (full color wheel traverse)
+                    hue: (config.hue + (eased * 180)) % 360,
+
+                    // Morph factor ranges from 0.2 to 5.0 (massive geometric distortion)
+                    morphFactor: 0.2 + (easedBack * 4.8),
+
+                    // Chaos from 0.01 (calm) to 1.5 (chaotic)
+                    chaos: 0.01 + (easedElastic * 1.5),
+
+                    // Speed varies 0.2 to 2.5 (fast/slow dramatic contrast)
+                    speed: 0.2 + (eased * 2.3),
+
+                    // Saturation pulses 0.3 to 1.0
+                    saturation: 0.3 + (Math.abs(Math.sin(eased * Math.PI * 2)) * 0.7),
+
+                    // 4D rotations now AGGRESSIVE (full hyperspatial rotation)
+                    rot4dXW: Math.sin(eased * Math.PI * 3) * 2.5,
+                    rot4dYW: Math.cos(eased * Math.PI * 2.5) * 2.8,
+                    rot4dZW: Math.sin(eased * Math.PI * 4) * 2.2
+                });
+            }
+        }
+
+        // SESSION 2: Scroll Choreographer
+        class ScrollChoreographer {
+            constructor(canvasManager) {
+                this.canvasManager = canvasManager;
+                this.stages = document.querySelectorAll('.card-stage');
+                this.currentCard = -1;
+                this.init();
+            }
+
+            init() {
+                this.stages.forEach((stage) => {
+                    // Get card number from data-card attribute (1-9)
+                    const cardNumber = parseInt(stage.dataset.card);
+                    const observer = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            this.handleCardIntersection(cardNumber, entry);
+                        });
+                    }, {
+                        threshold: this.createThresholds(101),
+                        rootMargin: '-10% 0px -10% 0px'
+                    });
+
+                    observer.observe(stage);
+                });
+            }
+
+            createThresholds(steps) {
+                return Array.from({length: steps}, (_, i) => i / (steps - 1));
+            }
+
+            handleCardIntersection(cardIndex, entry) {
+                const ratio = entry.intersectionRatio;
+                const bounds = entry.boundingClientRect;
+                const viewportHeight = window.innerHeight;
+
+                const progress = Math.max(0, Math.min(1,
+                    (viewportHeight - bounds.top) / (viewportHeight + bounds.height)
+                ));
+
+                // Card is entering/active
+                if (ratio > 0.1) {
+                    if (this.currentCard !== cardIndex) {
+                        this.currentCard = cardIndex;
+                        this.switchToCard(cardIndex);
+                    }
+                    this.canvasManager.updateVisualizerForProgress(cardIndex, progress);
+                }
+
+                // Card is leaving
+                if (ratio < 0.05 && this.currentCard === cardIndex) {
+                    // Prepare for next card
+                }
+            }
+
+            async switchToCard(cardIndex) {
+                console.log(`→ Switching to card ${cardIndex} (${CARD_VISUALIZER_CONFIG[cardIndex].type})`);
+                await this.canvasManager.transitionTo(cardIndex);
+            }
+        }
+
+        // ========== SYSTEM 1: SCROLL TIMELINE ORCHESTRATOR ==========
+        class ScrollTimelineOrchestrator {
+            constructor() {
+                this.container = document.getElementById('scrollContainer');
+                this.stages = document.querySelectorAll('.card-stage');
+                this.cards = document.querySelectorAll('.locked-card');
+                this.debug = document.getElementById('timingDebug');
+
+                this.totalScroll = 0;
+                this.currentCard = -1;
+                this.currentPhase = 0;
+
+                this.init();
+            }
+
+            init() {
+                this.container.addEventListener('scroll', () => this.onScroll(), { passive: true });
+                this.onScroll();
+
+                requestAnimationFrame(() => this.animate());
+            }
+
+            onScroll() {
+                const scrollTop = this.container.scrollTop;
+                const scrollHeight = this.container.scrollHeight - this.container.clientHeight;
+                this.totalScroll = scrollTop / scrollHeight;
+
+                // Update debug
+                this.debug.innerHTML = `
+                    Scroll: ${(this.totalScroll * 100).toFixed(1)}%<br>
+                    Card: ${this.currentCard}<br>
+                    Phase: ${this.currentPhase}
+                `;
+
+                // Determine current card and phase
+                this.stages.forEach((stage, index) => {
+                    const rect = stage.getBoundingClientRect();
+                    const viewportCenter = window.innerHeight / 2;
+
+                    if (rect.top < viewportCenter && rect.bottom > viewportCenter) {
+                        // Get card number from HTML data-card attribute (1-9)
+                        const cardNumber = parseInt(stage.dataset.card);
+                        this.currentCard = cardNumber;
+
+                        // Calculate phase within this card (0-1)
+                        const stageProgress = 1 - ((rect.bottom - viewportCenter) / rect.height);
+                        this.currentPhase = Math.max(0, Math.min(1, stageProgress));
+
+                        // Use index for DOM access, cardNumber for config lookup
+                        this.updateCardContent(index, this.currentPhase);
+                        // DON'T call updateCardTransform here - let animate() handle it
+                    }
+                });
+
+                // Update color zone
+                this.updateColorZone();
+
+                // Update all systems
+                window.parallaxSystem?.update(this.totalScroll);
+                window.typographySystem?.update(this.totalScroll, this.currentPhase);
+                window.colorShiftSystem?.update(this.totalScroll);
+            }
+
+            updateCardContent(cardIndex, phase) {
+                const card = this.cards[cardIndex];
+                if (!card) return;
+
+                const stages = card.querySelectorAll('.content-stage');
+
+                // Determine which stage to show (5 stages: 0-20%, 20-40%, 40-60%, 60-80%, 80-100%)
+                let activeStage = 0;
+                if (phase < 0.2) {
+                    activeStage = 0;
+                } else if (phase < 0.4) {
+                    activeStage = 1;
+                } else if (phase < 0.6) {
+                    activeStage = 2;
+                } else if (phase < 0.8) {
+                    activeStage = 3;
+                } else {
+                    activeStage = 4;
+                }
+
+                stages.forEach((stage, i) => {
+                    if (i === activeStage) {
+                        if (!stage.classList.contains('active')) {
+                            stage.classList.add('active');
+                            // SESSION 3: Staggered reveals for children
+                            this.staggerRevealChildren(stage);
+                        }
+                    } else {
+                        stage.classList.remove('active');
+                    }
+                });
+            }
+
+            staggerRevealChildren(stage) {
+                // Find all animatable children
+                const children = stage.querySelectorAll('.feature-badge, .feature-item, .metric-card, h2, h3, p');
+
+                children.forEach((child, index) => {
+                    // Remove any existing animation
+                    child.style.animation = 'none';
+
+                    // Force reflow
+                    void child.offsetHeight;
+
+                    // Apply staggered animation
+                    const delay = index * 50; // 50ms stagger
+                    child.style.animation = `fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${delay}ms both`;
+                });
+            }
+
+            updateCardTransform(cardNumber, phase, time = 0) {
+                // cardNumber is 1-9 from HTML data-card attribute
+                // Find the card by ID
+                const card = document.getElementById(`card${cardNumber}`);
+                if (!card) return;
+
+                // Apply AGGRESSIVE easing for dramatic effects
+                const eased = this.easeInOutQuart(phase);
+                const elasticEased = this.easeOutElastic(phase);
+                const backEased = this.easeOutBack(phase);
+
+                // Time-based continuous pulse (breathing effect)
+                const breathePulse = Math.sin(time * Math.PI * 1.2) * 0.05; // ±5% breathing
+                const microRotate = Math.sin(time * Math.PI * 0.7) * 3; // ±3° micro rotation
+                const shimmer = 1 + Math.sin(time * Math.PI * 1.8) * 0.12; // Brightness shimmer
+
+                // Unique DRAMATIC transform per card (10-20x more aggressive)
+                // Flexbox centers cards, transforms applied directly
+                // LAYERED: scroll-driven + time-based breathing pulses
+                switch(cardNumber) {
+                    case 1: // Circle → Sharp Rectangle with PULSE
+                        const borderRadius = 50 - (eased * 48); // 50% → 2% (near-sharp corners)
+                        const scale = (0.8 + (backEased * 0.8)) * (1 + breathePulse); // Base + breathing
+                        const rotate = Math.sin(phase * Math.PI * 4) * 8 + microRotate; // Scroll + micro rotation
+                        card.style.borderRadius = `${borderRadius}%`;
+                        card.style.transform = `scale(${scale}) rotate(${rotate}deg)`;
+                        card.style.filter = `hue-rotate(${phase * 180}deg) saturate(${1 + phase}) brightness(${shimmer})`;
+                        break;
+
+                    case 2: // Square → MEGA Pill with stretch
+                        const pillRadius = 10 + (eased * 290); // 10px → 300px (massive pill)
+                        const scaleY = (1.2 - (eased * 0.7)) * (1 + breathePulse); // Base + breathing
+                        const scaleX = (0.9 + (eased * 0.6)) * (1 + breathePulse);
+                        card.style.borderRadius = `${pillRadius}px`;
+                        card.style.transform = `scale(${scaleX}, ${scaleY})`;
+                        card.style.filter = `brightness(${(1 + phase * 0.5) * shimmer}) contrast(${1 + phase * 0.3})`;
+                        break;
+
+                    case 3: // Diamond → Rectangle with 3D FLIP
+                        const rotation = 45 - (eased * 45) + microRotate; // Base + micro rotation
+                        const scaleExp = (0.7 + (backEased * 1.0)) * (1 + breathePulse);
+                        const rotateY = phase * 180; // Full Y-axis rotation
+                        card.style.transform = `perspective(1000px) rotateY(${rotateY}deg) rotate(${rotation}deg) scale(${scaleExp})`;
+                        card.style.filter = `saturate(${2 - phase}) brightness(${shimmer})`;
+                        break;
+
+                    case 4: // Organic blob with EXPLOSIVE morphing
+                        const blobScale = (0.6 + (elasticEased * 1.2)) * (1 + breathePulse);
+                        const skewX = Math.sin(phase * Math.PI * 2) * 25;
+                        const skewY = Math.cos(phase * Math.PI * 1.5) * 15;
+                        card.style.transform = `scale(${blobScale}) skew(${skewX}deg, ${skewY}deg) rotate(${microRotate}deg)`;
+                        card.style.filter = `hue-rotate(${phase * 90}deg) blur(${Math.max(0, phase * 2 - 0.5)}px) brightness(${shimmer})`;
+                        break;
+
+                    case 5: // Parallelogram → Rectangle with SHEAR
+                        const scaleCard5 = (0.75 + (backEased * 0.9)) * (1 + breathePulse);
+                        const shear = (1 - eased) * 35;
+                        const rotateZ = Math.sin(phase * Math.PI) * 12 + microRotate;
+                        card.style.transform = `scale(${scaleCard5}) skewY(${shear}deg) rotate(${rotateZ}deg)`;
+                        card.style.filter = `brightness(${(0.9 + phase * 0.4) * shimmer})`;
+                        break;
+
+                    case 6: // Half-circle with WARPING
+                        const scaleCard6 = (0.8 + (elasticEased * 0.9)) * (1 + breathePulse);
+                        const warpRotate = phase * 360 + microRotate;
+                        const scaleYCard6 = (1 + Math.sin(phase * Math.PI * 3) * 0.4) * (1 + breathePulse);
+                        card.style.transform = `scale(${scaleCard6}, ${scaleYCard6}) rotate(${warpRotate}deg)`;
+                        card.style.filter = `hue-rotate(${phase * 120}deg) contrast(${1 + phase * 0.5}) brightness(${shimmer})`;
+                        break;
+
+                    case 7: // Conic gradient with SPIN
+                        const scaleCard7 = (0.7 + (backEased * 1.0)) * (1 + breathePulse);
+                        const spinRotate = phase * 720 + microRotate;
+                        const pulseScale = 1 + Math.sin(phase * Math.PI * 6) * 0.15;
+                        card.style.transform = `scale(${scaleCard7 * pulseScale}) rotate(${spinRotate}deg)`;
+                        card.style.filter = `saturate(${1 + phase * 1.5}) brightness(${(1 + phase * 0.3) * shimmer})`;
+                        break;
+
+                    case 8: // Tilted with EXTREME tilt and flip
+                        const rotation8 = -45 + (eased * 90) + microRotate;
+                        const scaleCard8 = (0.75 + (backEased * 0.95)) * (1 + breathePulse);
+                        const rotateX = phase * 360;
+                        card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotate(${rotation8}deg) scale(${scaleCard8})`;
+                        card.style.filter = `hue-rotate(${phase * 200}deg) brightness(${shimmer})`;
+                        break;
+
+                    case 9: // Pill with LIQUID morphing
+                        const scaleCard9 = (0.65 + (elasticEased * 1.15)) * (1 + breathePulse);
+                        const liquidSkew = Math.sin(phase * Math.PI * 5) * 20;
+                        const scaleYCard9 = (1 + Math.cos(phase * Math.PI * 4) * 0.35) * (1 + breathePulse);
+                        card.style.transform = `scale(${scaleCard9}, ${scaleYCard9}) skewX(${liquidSkew}deg) rotate(${microRotate}deg)`;
+                        card.style.filter = `hue-rotate(${phase * 270}deg) saturate(${1 + phase * 0.8}) brightness(${shimmer})`;
+                        break;
+                }
+            }
+
+            // Helper easing functions for card transforms
+            easeInOutQuart(t) {
+                return t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2;
+            }
+
+            easeOutElastic(t) {
+                const c4 = (2 * Math.PI) / 3;
+                return t === 0 ? 0 : t === 1 ? 1
+                    : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
+            }
+
+            easeOutBack(t) {
+                const c1 = 1.70158;
+                const c3 = c1 + 1;
+                return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+            }
+
+            updateColorZone() {
+                const zones = ['color-zone-1', 'color-zone-2', 'color-zone-3'];
+                const zoneIndex = Math.floor(this.totalScroll * zones.length);
+
+                zones.forEach((zone, i) => {
+                    if (i === zoneIndex) {
+                        this.container.classList.add(zone);
+                    } else {
+                        this.container.classList.remove(zone);
+                    }
+                });
+            }
+
+            animate() {
+                // Continuous animation loop for smooth effects
+                const time = Date.now() * 0.001; // Convert to seconds
+                this.animationTime = time; // Store for use in updateCardTransform
+
+                // Update card transform with time-based pulse
+                // currentCard is 1-9 from HTML data-card attributes
+                if (this.currentCard >= 1 && this.currentCard <= 9 && this.currentPhase !== undefined) {
+                    this.updateCardTransform(this.currentCard, this.currentPhase, time);
+                }
+
+                // Update visualizer parameters via ScrollChoreographer
+                if (window.scrollChoreographer && this.currentCard >= 1 && this.currentCard <= 9 && this.currentPhase !== undefined) {
+                    const config = CARD_VISUALIZER_CONFIG[this.currentCard];
+                    if (config && window.canvasManager) {
+                        // Let ScrollChoreographer handle visualizer updates with current scroll position
+                        window.scrollChoreographer.canvasManager.updateVisualizerForProgress(this.currentCard, this.currentPhase);
+                    }
+                }
+
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        // ========== SYSTEM 2: MULTI-LAYER PARALLAX ==========
+        class ParallaxSystem {
+            constructor() {
+                this.layers = {
+                    layer1: document.getElementById('layer1'),
+                    layer2: document.getElementById('layer2'),
+                    layer3: document.getElementById('layer3'),
+                    layer4: document.getElementById('layer4'),
+                    layer5: document.getElementById('layer5')
+                };
+
+                this.speeds = {
+                    layer1: 0.1,  // Slowest
+                    layer2: 0.2,
+                    layer3: 0.3,
+                    layer4: 0.5,
+                    layer5: 0.8   // Fastest
+                };
+            }
+
+            update(scrollProgress) {
+                const maxOffset = window.innerHeight;
+
+                Object.keys(this.layers).forEach(key => {
+                    const layer = this.layers[key];
+                    const speed = this.speeds[key];
+                    const offset = scrollProgress * maxOffset * speed;
+
+                    layer.style.transform = `translateY(${offset}px)`;
+                });
+            }
+        }
+
+        // ========== SYSTEM 3: TYPOGRAPHY SCALE ==========
+        class TypographySystem {
+            constructor() {
+                this.titles = document.querySelectorAll('.dynamic-title');
+                this.texts = document.querySelectorAll('.dynamic-text');
+            }
+
+            update(scrollProgress, cardPhase) {
+                // Scale typography based on scroll
+                this.titles.forEach(title => {
+                    const baseSize = parseInt(window.getComputedStyle(title).fontSize);
+                    const scale = 1 + (cardPhase * 0.1);
+                    title.style.transform = `scale(${scale})`;
+                });
+            }
+        }
+
+        // ========== SYSTEM 4: COLOR SHIFT ==========
+        class ColorShiftSystem {
+            constructor() {
+                this.body = document.body;
+            }
+
+            update(scrollProgress) {
+                // Gradually shift hue
+                const hue = scrollProgress * 60; // 0° → 60°
+                document.documentElement.style.setProperty('--primary', `hsl(${190 + hue}, 45%, 55%)`);
+            }
+        }
+
+        // ========== SYSTEM 7: OPACITY ORCHESTRATION ==========
+        class OpacityOrchestration {
+            constructor() {
+                this.elements = {
+                    cards: document.querySelectorAll('.locked-card'),
+                    titles: document.querySelectorAll('.dynamic-title'),
+                    texts: document.querySelectorAll('.dynamic-text')
+                };
+                this.triggers = this.createPreciseTriggers();
+            }
+
+            createPreciseTriggers() {
+                // Precise triggers at every 10% of scroll
+                return [
+                    { at: 0.0, action: 'hero-fade-in' },
+                    { at: 0.1, action: 'card1-prepare' },
+                    { at: 0.15, action: 'card1-enter' },
+                    { at: 0.25, action: 'card1-morph-start' },
+                    { at: 0.35, action: 'card1-exit' },
+                    { at: 0.4, action: 'card2-prepare' },
+                    { at: 0.45, action: 'card2-enter' },
+                    { at: 0.55, action: 'card2-morph-start' },
+                    { at: 0.65, action: 'card2-exit' },
+                    { at: 0.7, action: 'card3-prepare' },
+                    { at: 0.75, action: 'card3-enter' },
+                    { at: 0.85, action: 'card3-morph-start' },
+                    { at: 0.95, action: 'card3-exit' },
+                    { at: 1.0, action: 'footer-reveal' }
+                ];
+            }
+
+            update(scrollProgress) {
+                this.triggers.forEach(trigger => {
+                    const distance = Math.abs(scrollProgress - trigger.at);
+                    if (distance < 0.05) { // Within 5% of trigger point
+                        this.executeAction(trigger.action, 1 - (distance / 0.05));
+                    }
+                });
+            }
+
+            executeAction(action, intensity) {
+                // Execute precise opacity changes at specific scroll percentages
+                const alpha = Math.pow(intensity, 2); // Ease-in-out
+
+                switch(action) {
+                    case 'hero-fade-in':
+                        document.querySelector('section').style.opacity = alpha;
+                        break;
+                    case 'card1-enter':
+                    case 'card2-enter':
+                    case 'card3-enter':
+                        // Cards fade in precisely when they should
+                        break;
+                }
+            }
+        }
+
+        // ========== SYSTEM 8: WEBGL VISUALIZER INTEGRATION ==========
+        class CoordinatedVisualizer {
+            constructor(canvasId, isPrimary) {
+                this.canvas = document.getElementById(canvasId);
+                this.isPrimary = isPrimary;
+                this.gl = this.canvas.getContext('webgl2') || this.canvas.getContext('webgl');
+                if (!this.gl) {
+                    console.error('WebGL not supported');
+                    return;
+                }
+
+                this.startTime = Date.now();
+
+                // ENHANCED PARAMETERS - Pushed beyond documented limits
+                this.params = {
+                    gridDensity: isPrimary ? 65 : 40,      // Beyond standard 45
+                    chaos: isPrimary ? 0.28 : 0.18,        // Beyond standard 0.18
+                    speed: isPrimary ? 0.65 : 0.42,        // Beyond standard 0.45
+                    hue: isPrimary ? 0.52 : 0.45,
+                    intensity: isPrimary ? 0.35 : 0.22,    // Beyond standard 0.22
+                    saturation: 0.85,                       // Beyond standard 0.7
+                    morphFactor: isPrimary ? 1.8 : 1.2,    // Beyond standard 1.3
+
+                    // FULL 6D ROTATION SYSTEM
+                    // 4D Hyperspace rotations (XW, YW, ZW)
+                    rot4dXW: 0.0,
+                    rot4dYW: 0.0,
+                    rot4dZW: 0.0,
+
+                    // 3D Space rotations (XY, XZ, YZ)
+                    rot3dXY: 0.0,
+                    rot3dXZ: 0.0,
+                    rot3dYZ: 0.0
+                };
+
+                this.targetParams = { ...this.params };
+                this.init();
+            }
+
+            init() {
+                this.initShaders();
+                this.initBuffers();
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+            }
+
+            initShaders() {
+                const vertexShader = `
+                    attribute vec2 a_position;
+                    void main() {
+                        gl_Position = vec4(a_position, 0.0, 1.0);
+                    }
+                `;
+
+                const fragmentShader = `
+                    precision highp float;
+                    uniform vec2 u_resolution;
+                    uniform float u_time;
+                    uniform float u_gridDensity;
+                    uniform float u_chaos;
+                    uniform float u_speed;
+                    uniform float u_hue;
+                    uniform float u_intensity;
+                    uniform float u_saturation;
+                    uniform float u_morphFactor;
+
+                    // 6D Rotation uniforms
+                    uniform float u_rot4dXW;
+                    uniform float u_rot4dYW;
+                    uniform float u_rot4dZW;
+                    uniform float u_rot3dXY;
+                    uniform float u_rot3dXZ;
+                    uniform float u_rot3dYZ;
+
+                    // 4D Hyperspace rotation matrices
+                    mat4 rotateXW(float theta) {
+                        float c = cos(theta);
+                        float s = sin(theta);
+                        return mat4(
+                            c, 0.0, 0.0, -s,
+                            0.0, 1.0, 0.0, 0.0,
+                            0.0, 0.0, 1.0, 0.0,
+                            s, 0.0, 0.0, c
+                        );
+                    }
+
+                    mat4 rotateYW(float theta) {
+                        float c = cos(theta);
+                        float s = sin(theta);
+                        return mat4(
+                            1.0, 0.0, 0.0, 0.0,
+                            0.0, c, 0.0, -s,
+                            0.0, 0.0, 1.0, 0.0,
+                            0.0, s, 0.0, c
+                        );
+                    }
+
+                    mat4 rotateZW(float theta) {
+                        float c = cos(theta);
+                        float s = sin(theta);
+                        return mat4(
+                            1.0, 0.0, 0.0, 0.0,
+                            0.0, 1.0, 0.0, 0.0,
+                            0.0, 0.0, c, -s,
+                            0.0, 0.0, s, c
+                        );
+                    }
+
+                    // 3D Space rotation matrices
+                    mat3 rotateXY(float theta) {
+                        float c = cos(theta);
+                        float s = sin(theta);
+                        return mat3(
+                            c, -s, 0.0,
+                            s, c, 0.0,
+                            0.0, 0.0, 1.0
+                        );
+                    }
+
+                    mat3 rotateXZ(float theta) {
+                        float c = cos(theta);
+                        float s = sin(theta);
+                        return mat3(
+                            c, 0.0, -s,
+                            0.0, 1.0, 0.0,
+                            s, 0.0, c
+                        );
+                    }
+
+                    mat3 rotateYZ(float theta) {
+                        float c = cos(theta);
+                        float s = sin(theta);
+                        return mat3(
+                            1.0, 0.0, 0.0,
+                            0.0, c, -s,
+                            0.0, s, c
+                        );
+                    }
+
+                    vec3 hsv2rgb(vec3 c) {
+                        vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+                    }
+
+                    vec3 project4Dto3D(vec4 p) {
+                        float w = 2.8 / (2.8 + p.w);  // Adjusted projection distance
+                        return vec3(p.x * w, p.y * w, p.z * w);
+                    }
+
+                    float sphereLattice(vec3 p, float gridSize) {
+                        vec3 cell = fract(p * gridSize) - 0.5;
+                        return 1.0 - smoothstep(0.12, 0.28, length(cell));  // Adjusted for higher density
+                    }
+
+                    void main() {
+                        vec2 uv = (gl_FragCoord.xy - u_resolution.xy * 0.5) / min(u_resolution.x, u_resolution.y);
+                        float timeSpeed = u_time * 0.0001 * u_speed;
+
+                        // Initialize 4D position with morphing
+                        vec4 pos4d = vec4(
+                            uv * 3.2,
+                            sin(timeSpeed * 2.8) * u_morphFactor,
+                            cos(timeSpeed * 2.2) * u_morphFactor
+                        );
+
+                        // Apply 4D hyperspace rotations (XW, YW, ZW planes)
+                        pos4d = rotateXW(u_rot4dXW + timeSpeed * 0.45) * pos4d;
+                        pos4d = rotateYW(u_rot4dYW + timeSpeed * 0.35) * pos4d;
+                        pos4d = rotateZW(u_rot4dZW + timeSpeed * 0.25) * pos4d;
+
+                        // Project to 3D
+                        vec3 pos3d = project4Dto3D(pos4d);
+
+                        // Apply 3D space rotations (XY, XZ, YZ planes)
+                        pos3d = rotateXY(u_rot3dXY + timeSpeed * 0.3) * pos3d;
+                        pos3d = rotateXZ(u_rot3dXZ + timeSpeed * 0.2) * pos3d;
+                        pos3d = rotateYZ(u_rot3dYZ + timeSpeed * 0.4) * pos3d;
+
+                        // Calculate lattice value with enhanced parameters
+                        float value = sphereLattice(pos3d, u_gridDensity * 0.085);
+
+                        // Enhanced noise with chaos parameter
+                        float noise = sin(pos4d.x * 7.0) * cos(pos4d.y * 9.0) * sin(pos4d.w * 5.0);
+                        value += noise * u_chaos;
+
+                        // Calculate final intensity with enhanced range
+                        float finalIntensity = pow(1.0 - clamp(abs(value), 0.0, 1.0), 2.2) * u_intensity;
+
+                        // Dynamic color with time-based hue shift
+                        vec3 color = hsv2rgb(vec3(
+                            u_hue + timeSpeed * 0.025,
+                            u_saturation,
+                            0.95
+                        ));
+
+                        gl_FragColor = vec4(color * finalIntensity, finalIntensity * 0.65);
+                    }
+                `;
+
+                this.program = this.createProgram(vertexShader, fragmentShader);
+                this.uniforms = {
+                    resolution: this.gl.getUniformLocation(this.program, 'u_resolution'),
+                    time: this.gl.getUniformLocation(this.program, 'u_time'),
+                    gridDensity: this.gl.getUniformLocation(this.program, 'u_gridDensity'),
+                    chaos: this.gl.getUniformLocation(this.program, 'u_chaos'),
+                    speed: this.gl.getUniformLocation(this.program, 'u_speed'),
+                    hue: this.gl.getUniformLocation(this.program, 'u_hue'),
+                    intensity: this.gl.getUniformLocation(this.program, 'u_intensity'),
+                    saturation: this.gl.getUniformLocation(this.program, 'u_saturation'),
+                    morphFactor: this.gl.getUniformLocation(this.program, 'u_morphFactor'),
+                    rot4dXW: this.gl.getUniformLocation(this.program, 'u_rot4dXW'),
+                    rot4dYW: this.gl.getUniformLocation(this.program, 'u_rot4dYW'),
+                    rot4dZW: this.gl.getUniformLocation(this.program, 'u_rot4dZW'),
+                    rot3dXY: this.gl.getUniformLocation(this.program, 'u_rot3dXY'),
+                    rot3dXZ: this.gl.getUniformLocation(this.program, 'u_rot3dXZ'),
+                    rot3dYZ: this.gl.getUniformLocation(this.program, 'u_rot3dYZ')
+                };
+            }
+
+            createProgram(vertexSource, fragmentSource) {
+                const vertexShader = this.createShader(this.gl.VERTEX_SHADER, vertexSource);
+                const fragmentShader = this.createShader(this.gl.FRAGMENT_SHADER, fragmentSource);
+                const program = this.gl.createProgram();
+                this.gl.attachShader(program, vertexShader);
+                this.gl.attachShader(program, fragmentShader);
+                this.gl.linkProgram(program);
+
+                if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
+                    console.error('Shader program link error:', this.gl.getProgramInfoLog(program));
+                }
+
+                return program;
+            }
+
+            createShader(type, source) {
+                const shader = this.gl.createShader(type);
+                this.gl.shaderSource(shader, source);
+                this.gl.compileShader(shader);
+
+                if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+                    console.error('Shader compile error:', this.gl.getShaderInfoLog(shader));
+                }
+
+                return shader;
+            }
+
+            initBuffers() {
+                const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+                this.buffer = this.gl.createBuffer();
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffer);
+                this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
+
+                const positionLocation = this.gl.getAttribLocation(this.program, 'a_position');
+                this.gl.enableVertexAttribArray(positionLocation);
+                this.gl.vertexAttribPointer(positionLocation, 2, this.gl.FLOAT, false, 0, 0);
+            }
+
+            resize() {
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                this.canvas.width = this.canvas.clientWidth * dpr;
+                this.canvas.height = this.canvas.clientHeight * dpr;
+                this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            updateParameters(params) {
+                Object.assign(this.targetParams, params);
+            }
+
+            lerpParams() {
+                const lerpFactor = 0.035;  // Slightly faster than standard 0.03
+                for (let key in this.targetParams) {
+                    this.params[key] += (this.targetParams[key] - this.params[key]) * lerpFactor;
+                }
+            }
+
+            render() {
+                if (!this.program || !this.gl) return;
+
+                this.lerpParams();
+
+                this.gl.useProgram(this.program);
+                this.gl.clearColor(0, 0, 0, 0);
+                this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+                this.gl.enable(this.gl.BLEND);
+                this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+
+                const time = Date.now() - this.startTime;
+                this.gl.uniform2f(this.uniforms.resolution, this.canvas.width, this.canvas.height);
+                this.gl.uniform1f(this.uniforms.time, time);
+                this.gl.uniform1f(this.uniforms.gridDensity, this.params.gridDensity);
+                this.gl.uniform1f(this.uniforms.chaos, this.params.chaos);
+                this.gl.uniform1f(this.uniforms.speed, this.params.speed);
+                this.gl.uniform1f(this.uniforms.hue, this.params.hue);
+                this.gl.uniform1f(this.uniforms.intensity, this.params.intensity);
+                this.gl.uniform1f(this.uniforms.saturation, this.params.saturation);
+                this.gl.uniform1f(this.uniforms.morphFactor, this.params.morphFactor);
+                this.gl.uniform1f(this.uniforms.rot4dXW, this.params.rot4dXW);
+                this.gl.uniform1f(this.uniforms.rot4dYW, this.params.rot4dYW);
+                this.gl.uniform1f(this.uniforms.rot4dZW, this.params.rot4dZW);
+                this.gl.uniform1f(this.uniforms.rot3dXY, this.params.rot3dXY);
+                this.gl.uniform1f(this.uniforms.rot3dXZ, this.params.rot3dXZ);
+                this.gl.uniform1f(this.uniforms.rot3dYZ, this.params.rot3dYZ);
+
+                this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+            }
+        }
+
+        // ========== SYSTEM 9: CROSS-SECTION COORDINATION ==========
+        class SharedTimingSystem {
+            constructor(visualizers) {
+                this.visualizers = visualizers;
+                this.sections = document.querySelectorAll('.card-stage');
+                this.coordinationPoints = this.createCoordinationPoints();
+                this.currentSection = -1;
+            }
+
+            createCoordinationPoints() {
+                // Points where sections affect each other
+                return [
+                    { at: 0.20, type: 'card1-card2-transition', blend: 0.15 },
+                    { at: 0.50, type: 'card2-card3-transition', blend: 0.15 },
+                    { at: 0.80, type: 'card3-footer-transition', blend: 0.15 }
+                ];
+            }
+
+            update(scrollProgress, currentCard) {
+                // Check if we're at a coordination point
+                this.coordinationPoints.forEach(point => {
+                    const distance = Math.abs(scrollProgress - point.at);
+
+                    if (distance < point.blend) {
+                        const blendFactor = 1 - (distance / point.blend);
+                        this.executeCoordination(point.type, blendFactor);
+                    }
+                });
+
+                // Update section index
+                if (currentCard !== this.currentSection) {
+                    this.currentSection = currentCard;
+                    this.onSectionChange(currentCard);
+                }
+            }
+
+            executeCoordination(type, blendFactor) {
+                // Coordinate visualizers between sections
+                switch(type) {
+                    case 'card1-card2-transition':
+                        // Blend from blue to orange tones
+                        const hue1to2 = 0.52 + (blendFactor * (0.08 - 0.52));
+                        this.visualizers.primary.updateParameters({ hue: hue1to2 });
+                        break;
+
+                    case 'card2-card3-transition':
+                        // Blend from orange to green tones
+                        const hue2to3 = 0.08 + (blendFactor * (0.45 - 0.08));
+                        this.visualizers.primary.updateParameters({ hue: hue2to3 });
+                        break;
+
+                    case 'card3-footer-transition':
+                        // Reduce intensity for footer
+                        const intensity = 0.35 * (1 - blendFactor * 0.5);
+                        this.visualizers.primary.updateParameters({ intensity });
+                        break;
+                }
+            }
+
+            onSectionChange(sectionIndex) {
+                // Trigger section-specific behaviors
+                console.log(`Section changed to: ${sectionIndex}`);
+            }
+        }
+
+        // ========== SYSTEM 10: ADVANCED INTERACTIONS ==========
+        class AdvancedInteractions {
+            constructor(visualizers) {
+                this.visualizers = visualizers;
+                this.mouse = { x: 0, y: 0, smoothX: 0, smoothY: 0 };
+                this.tilt = { alpha: 0, beta: 0, gamma: 0 };
+                this.init();
+            }
+
+            init() {
+                this.setupMouseTracking();
+                this.setupDeviceTilt();
+                this.setupHoverEffects();
+                this.animate();
+            }
+
+            setupMouseTracking() {
+                window.addEventListener('mousemove', (e) => {
+                    this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                    this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                });
+            }
+
+            setupDeviceTilt() {
+                if (window.DeviceOrientationEvent) {
+                    window.addEventListener('deviceorientation', (e) => {
+                        this.tilt.alpha = e.alpha || 0;  // Z-axis rotation
+                        this.tilt.beta = e.beta || 0;    // X-axis rotation
+                        this.tilt.gamma = e.gamma || 0;  // Y-axis rotation
+                    });
+                }
+            }
+
+            setupHoverEffects() {
+                const cards = document.querySelectorAll('.locked-card');
+
+                cards.forEach(card => {
+                    card.addEventListener('mouseenter', () => {
+                        this.visualizers.primary.updateParameters({
+                            chaos: this.visualizers.primary.targetParams.chaos * 1.5,
+                            speed: this.visualizers.primary.targetParams.speed * 1.3
+                        });
+                    });
+
+                    card.addEventListener('mouseleave', () => {
+                        this.visualizers.primary.updateParameters({
+                            chaos: this.visualizers.primary.targetParams.chaos / 1.5,
+                            speed: this.visualizers.primary.targetParams.speed / 1.3
+                        });
+                    });
+                });
+            }
+
+            animate() {
+                // Smooth mouse tracking
+                this.mouse.smoothX += (this.mouse.x - this.mouse.smoothX) * 0.08;
+                this.mouse.smoothY += (this.mouse.y - this.mouse.smoothY) * 0.08;
+
+                // Map mouse to 6D rotations
+                const time = Date.now() * 0.0003;
+
+                // Primary visualizer - responds to mouse + autonomous motion
+                this.visualizers.primary.updateParameters({
+                    rot4dXW: this.mouse.smoothY * 0.6 + Math.sin(time) * 0.15,
+                    rot4dYW: this.mouse.smoothX * 0.6 + Math.cos(time * 0.8) * 0.15,
+                    rot4dZW: Math.sin(time * 0.5) * 0.2,
+                    rot3dXY: this.mouse.smoothX * 0.3,
+                    rot3dXZ: this.mouse.smoothY * 0.3,
+                    rot3dYZ: Math.cos(time * 1.2) * 0.1
+                });
+
+                // Secondary visualizer - counter-rotates
+                this.visualizers.secondary.updateParameters({
+                    rot4dXW: this.mouse.smoothY * 0.4 - Math.sin(time * 0.7) * 0.12,
+                    rot4dYW: this.mouse.smoothX * 0.4 + Math.cos(time) * 0.12,
+                    rot4dZW: -Math.sin(time * 0.6) * 0.15,
+                    rot3dXY: -this.mouse.smoothX * 0.2,
+                    rot3dXZ: -this.mouse.smoothY * 0.2,
+                    rot3dYZ: Math.sin(time * 0.9) * 0.08
+                });
+
+                // Device tilt mapping (if available)
+                if (this.tilt.beta !== 0) {
+                    const tiltFactor = 0.02;
+                    this.visualizers.primary.updateParameters({
+                        rot3dXZ: (this.tilt.beta / 90) * tiltFactor,
+                        rot3dYZ: (this.tilt.gamma / 90) * tiltFactor
+                    });
+                }
+
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        // ========== DYNAMIC CARD CHOREOGRAPHY CONTROLLER ==========
+        class DynamicCardChoreography {
+            constructor(visualizers) {
+                this.visualizers = visualizers;
+                this.stages = document.querySelectorAll('.card-stage');
+                this.currentCard = null;
+                this.preciseTriggers = this.createPreciseTriggers();
+                this.init();
+            }
+
+            createPreciseTriggers() {
+                // Precise scroll percentage triggers for each 10% increment
+                const triggers = [];
+                for (let i = 0; i <= 100; i += 10) {
+                    triggers.push({
+                        percentage: i / 100,
+                        executed: false
+                    });
+                }
+                return triggers;
+            }
+
+            init() {
+                this.setupScrollObservers();
+            }
+
+            setupScrollObservers() {
+                this.stages.forEach((stage, index) => {
+                    const observer = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            const ratio = entry.intersectionRatio;
+                            const bounds = entry.boundingClientRect;
+                            const viewportHeight = window.innerHeight;
+
+                            // Calculate precise progress through section
+                            const progress = Math.max(0, Math.min(1,
+                                (viewportHeight - bounds.top) / (viewportHeight + bounds.height)
+                            ));
+
+                            if (ratio > 0.05) {
+                                this.currentCard = index;
+                                this.updateVisualizersForCard(index, progress, ratio);
+                                this.checkPreciseTriggers(progress, index);
+                            }
+                        });
+                    }, {
+                        threshold: Array.from({length: 101}, (_, i) => i / 100),
+                        rootMargin: '-5% 0px -5% 0px'
+                    });
+
+                    observer.observe(stage);
+                });
+            }
+
+            checkPreciseTriggers(progress, cardIndex) {
+                // Execute actions at precise 10% increments
+                this.preciseTriggers.forEach(trigger => {
+                    const distance = Math.abs(progress - trigger.percentage);
+
+                    if (distance < 0.02 && !trigger.executed) {
+                        trigger.executed = true;
+                        this.executePreciseTrigger(trigger.percentage, cardIndex);
+
+                        // Reset trigger after moving past it
+                        setTimeout(() => { trigger.executed = false; }, 100);
+                    }
+                });
+            }
+
+            executePreciseTrigger(percentage, cardIndex) {
+                console.log(`Trigger at ${(percentage * 100).toFixed(0)}% on card ${cardIndex}`);
+
+                // Execute specific actions at precise scroll points
+                // This creates the "tick by tick" effect the user requested
+            }
+
+            updateVisualizersForCard(cardIndex, progress, ratio) {
+                // Dynamic configurations with EXTREME parameter ranges
+                const configs = [
+                    // Card 0: PRECISION - Blue theme
+                    {
+                        primary: {
+                            hue: 0.52 + (progress * 0.12),              // Wider hue shift
+                            intensity: 0.22 + (progress * 0.25),        // Beyond limits
+                            gridDensity: 55 + (progress * 45),          // Up to 100
+                            speed: 0.5 + (progress * 0.4),              // Faster
+                            morphFactor: 1.5 + (progress * 1.0),        // Up to 2.5
+                            chaos: 0.20 + (progress * 0.30),            // Up to 0.5
+                            saturation: 0.75 + (progress * 0.20)        // Up to 0.95
+                        },
+                        secondary: {
+                            hue: 0.58 - (progress * 0.08),
+                            intensity: 0.16 + (progress * 0.12),
+                            gridDensity: 35 + (progress * 25),
+                            speed: 0.35 + (progress * 0.25),
+                            morphFactor: 1.0 + (progress * 0.6),
+                            chaos: 0.15 + (progress * 0.15)
+                        }
+                    },
+                    // Card 1: CONSENSUS - Orange theme
+                    {
+                        primary: {
+                            hue: 0.08 + (progress * 0.10),
+                            intensity: 0.25 + (progress * 0.28),
+                            gridDensity: 60 + (progress * 40),
+                            speed: 0.48 + (progress * 0.42),
+                            morphFactor: 1.6 + (progress * 1.1),
+                            chaos: 0.22 + (progress * 0.28),
+                            saturation: 0.80 + (progress * 0.15)
+                        },
+                        secondary: {
+                            hue: 0.48 + (progress * 0.06),
+                            intensity: 0.14 + (progress * 0.14),
+                            gridDensity: 32 + (progress * 28),
+                            speed: 0.32 + (progress * 0.28),
+                            morphFactor: 0.9 + (progress * 0.7),
+                            chaos: 0.12 + (progress * 0.18)
+                        }
+                    },
+                    // Card 2: EXECUTION - Green theme
+                    {
+                        primary: {
+                            hue: 0.45 + (progress * 0.15),
+                            intensity: 0.28 + (progress * 0.32),
+                            gridDensity: 65 + (progress * 35),          // Max 100
+                            speed: 0.52 + (progress * 0.48),            // Max 1.0
+                            morphFactor: 1.8 + (progress * 1.2),        // Max 3.0
+                            chaos: 0.25 + (progress * 0.25),            // Max 0.5
+                            saturation: 0.85 + (progress * 0.10)        // Max 0.95
+                        },
+                        secondary: {
+                            hue: 0.52 - (progress * 0.12),
+                            intensity: 0.18 + (progress * 0.10),
+                            gridDensity: 38 + (progress * 22),
+                            speed: 0.36 + (progress * 0.24),
+                            morphFactor: 1.1 + (progress * 0.5),
+                            chaos: 0.16 + (progress * 0.12)
+                        }
+                    },
+                    // Card 3: STORAGE - Red/Purple theme
+                    {
+                        primary: {
+                            hue: 0.95 + (progress * 0.10),
+                            intensity: 0.26 + (progress * 0.30),
+                            gridDensity: 58 + (progress * 42),
+                            speed: 0.54 + (progress * 0.46),
+                            morphFactor: 1.7 + (progress * 1.3),
+                            chaos: 0.24 + (progress * 0.26),
+                            saturation: 0.78 + (progress * 0.17)
+                        },
+                        secondary: {
+                            hue: 0.02 - (progress * 0.07),
+                            intensity: 0.17 + (progress * 0.13),
+                            gridDensity: 36 + (progress * 24),
+                            speed: 0.38 + (progress * 0.26),
+                            morphFactor: 1.05 + (progress * 0.65),
+                            chaos: 0.16 + (progress * 0.16)
+                        }
+                    },
+                    // Card 4: NETWORK - Yellow/Orange theme
+                    {
+                        primary: {
+                            hue: 0.12 + (progress * 0.08),
+                            intensity: 0.29 + (progress * 0.31),
+                            gridDensity: 62 + (progress * 38),
+                            speed: 0.56 + (progress * 0.44),
+                            morphFactor: 1.75 + (progress * 1.25),
+                            chaos: 0.26 + (progress * 0.24),
+                            saturation: 0.82 + (progress * 0.13)
+                        },
+                        secondary: {
+                            hue: 0.15 + (progress * 0.05),
+                            intensity: 0.19 + (progress * 0.11),
+                            gridDensity: 37 + (progress * 23),
+                            speed: 0.40 + (progress * 0.24),
+                            morphFactor: 1.08 + (progress * 0.62),
+                            chaos: 0.17 + (progress * 0.17)
+                        }
+                    },
+                    // Card 5: SECURITY - Purple theme
+                    {
+                        primary: {
+                            hue: 0.75 + (progress * 0.10),
+                            intensity: 0.27 + (progress * 0.33),
+                            gridDensity: 64 + (progress * 36),
+                            speed: 0.58 + (progress * 0.42),
+                            morphFactor: 1.85 + (progress * 1.15),
+                            chaos: 0.27 + (progress * 0.23),
+                            saturation: 0.84 + (progress * 0.11)
+                        },
+                        secondary: {
+                            hue: 0.78 - (progress * 0.08),
+                            intensity: 0.20 + (progress * 0.10),
+                            gridDensity: 39 + (progress * 21),
+                            speed: 0.42 + (progress * 0.22),
+                            morphFactor: 1.12 + (progress * 0.58),
+                            chaos: 0.18 + (progress * 0.14)
+                        }
+                    },
+                    // Card 6: MONITORING - Cyan theme
+                    {
+                        primary: {
+                            hue: 0.50 + (progress * 0.12),
+                            intensity: 0.30 + (progress * 0.35),
+                            gridDensity: 66 + (progress * 34),
+                            speed: 0.60 + (progress * 0.40),
+                            morphFactor: 1.9 + (progress * 1.1),
+                            chaos: 0.28 + (progress * 0.22),
+                            saturation: 0.86 + (progress * 0.09)
+                        },
+                        secondary: {
+                            hue: 0.54 - (progress * 0.09),
+                            intensity: 0.21 + (progress * 0.09),
+                            gridDensity: 40 + (progress * 20),
+                            speed: 0.44 + (progress * 0.20),
+                            morphFactor: 1.15 + (progress * 0.55),
+                            chaos: 0.19 + (progress * 0.13)
+                        }
+                    },
+                    // Card 7: API GATEWAY - Green/Lime theme
+                    {
+                        primary: {
+                            hue: 0.25 + (progress * 0.15),
+                            intensity: 0.31 + (progress * 0.34),
+                            gridDensity: 68 + (progress * 32),
+                            speed: 0.62 + (progress * 0.38),
+                            morphFactor: 2.0 + (progress * 1.0),
+                            chaos: 0.29 + (progress * 0.21),
+                            saturation: 0.88 + (progress * 0.07)
+                        },
+                        secondary: {
+                            hue: 0.28 + (progress * 0.07),
+                            intensity: 0.22 + (progress * 0.08),
+                            gridDensity: 41 + (progress * 19),
+                            speed: 0.46 + (progress * 0.18),
+                            morphFactor: 1.18 + (progress * 0.52),
+                            chaos: 0.20 + (progress * 0.12)
+                        }
+                    },
+                    // Card 8: PERFORMANCE - Pink/Magenta theme
+                    {
+                        primary: {
+                            hue: 0.88 + (progress * 0.10),
+                            intensity: 0.32 + (progress * 0.36),
+                            gridDensity: 70 + (progress * 30),
+                            speed: 0.64 + (progress * 0.36),
+                            morphFactor: 2.1 + (progress * 0.9),
+                            chaos: 0.30 + (progress * 0.20),
+                            saturation: 0.90 + (progress * 0.05)
+                        },
+                        secondary: {
+                            hue: 0.92 - (progress * 0.10),
+                            intensity: 0.23 + (progress * 0.07),
+                            gridDensity: 42 + (progress * 18),
+                            speed: 0.48 + (progress * 0.16),
+                            morphFactor: 1.20 + (progress * 0.50),
+                            chaos: 0.21 + (progress * 0.11)
+                        }
+                    }
+                ];
+
+                const config = configs[cardIndex];
+                if (config && ratio > 0.1) {
+                    this.visualizers.primary.updateParameters(config.primary);
+                    this.visualizers.secondary.updateParameters(config.secondary);
+
+                    // Update layer visual states
+                    const primaryEl = document.getElementById('layer4');
+                    const secondaryEl = document.getElementById('layer5');
+
+                    if (progress > 0.6) {
+                        primaryEl.classList.add('dominant');
+                        secondaryEl.classList.add('recessed');
+                    } else {
+                        primaryEl.classList.remove('dominant');
+                        secondaryEl.classList.remove('recessed');
+                    }
+                }
+            }
+        }
+
+        // ========== INITIALIZATION ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🎬 Initializing VIB3+ Enhanced System (Sessions 1 & 2)...');
+
+            // SESSION 1: Initialize Canvas Lifecycle Manager
+            window.canvasManager = new CanvasLifecycleManager();
+
+            // SESSION 2: Initialize Scroll Choreographer
+            window.scrollChoreographer = new ScrollChoreographer(window.canvasManager);
+
+            // Keep existing systems
+            window.scrollOrchestrator = new ScrollTimelineOrchestrator();
+            window.parallaxSystem = new ParallaxSystem();
+            window.typographySystem = new TypographySystem();
+            window.colorShiftSystem = new ColorShiftSystem();
+
+            console.log('✅ VIB3+ Visualizer System Initialized!');
+            console.log('');
+            console.log('📊 System Status:');
+            console.log('  ✓ CanvasLifecycleManager (Max 2 WebGL contexts)');
+            console.log('  ✓ ScrollChoreographer (IntersectionObserver)');
+            console.log('  ✓ 4 Visualizer Types: FACETED, QUANTUM, HOLOGRAPHIC, POLYCHORA');
+            console.log('');
+            console.log('🎴 Card-Visualizer Mapping:');
+            console.log('  Card 1 (Precision)   → QUANTUM');
+            console.log('  Card 2 (Consensus)   → HOLOGRAPHIC');
+            console.log('  Card 3 (Execution)   → QUANTUM');
+            console.log('  Card 4 (Storage)     → POLYCHORA');
+            console.log('  Card 5 (Network)     → HOLOGRAPHIC');
+            console.log('  Card 6 (Security)    → POLYCHORA');
+            console.log('  Card 7 (Monitoring)  → HOLOGRAPHIC');
+            console.log('  Card 8 (API Gateway) → FACETED');
+            console.log('  Card 9 (Performance) → QUANTUM');
+            console.log('');
+            console.log('🎨 Features:');
+            console.log('  - Proper WebGL lifecycle (init → destroy)');
+            console.log('  - Smart parameter updates (no recreate if same type)');
+            console.log('  - Progressive scroll-based parameter changes');
+            console.log('  - 4D rotation matrices (XW, YW, ZW planes)');
+            console.log('  - Memory-safe context cleanup with loseContext()');
+            console.log('');
+            console.log('🌟 Ready! Scroll to see visualizers switch...');
+        });
+    </script>
+</body>
+</html>
