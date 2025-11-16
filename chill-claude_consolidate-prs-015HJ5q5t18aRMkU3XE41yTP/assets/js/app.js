@@ -1250,7 +1250,7 @@ function initFooter() {
   }
 }
 
-function init() {
+async function init() {
   // Make systems data globally available for morph choreography
   window.APP_DATA = { systems };
 
@@ -1277,16 +1277,32 @@ function init() {
   // Initialize GSAP-based morphing choreography
   const morphChoreography = new MorphChoreography(visualizers);
 
+  // Initialize ADVANCED MORPH ENGINE
+  const { MorphEngine } = await import('./morph-engine.js');
+  const morphEngine = new MorphEngine(
+    visualizers,
+    window.gsap,
+    window.ScrollTrigger,
+    window.SplitType
+  );
+
+  // Make morph engine globally accessible for debugging
+  window.MORPH_ENGINE = morphEngine;
+
   setupCardReactivity(visualizers);
+  setupScrollDirector(visualizers);
   initFooter();
 
   console.log('🚀 Minoots Temporal Systems initialized');
   console.log('   ✨ Lenis smooth scrolling');
   console.log('   🎭 SplitType text animations');
   console.log('   🎬 GSAP morphing choreography');
+  console.log('   🌀 Advanced Morph Engine');
   console.log('   🎨 Section mode switching');
   console.log('   🌊 Parallax layers');
   console.log('   💫 WebGL 4D visualizers');
+  console.log('   🔄 Layer switching system');
+  console.log('   ⚡ Hover-focus pipeline');
 }
 
 document.addEventListener("DOMContentLoaded", init);

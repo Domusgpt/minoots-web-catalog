@@ -1277,6 +1277,273 @@ a:focus {
   }
 }
 
+/* ========================================
+   ADVANCED MORPH ENGINE STYLES
+   ======================================== */
+
+/* Morph phase states */
+[data-morph-phase="dormant"] {
+  pointer-events: none;
+}
+
+[data-morph-phase="circle"] {
+  cursor: pointer;
+}
+
+[data-morph-phase="expanding"],
+[data-morph-phase="full"] {
+  cursor: auto;
+}
+
+[data-morph-phase="splitting"] {
+  overflow: visible !important;
+}
+
+[data-morph-phase="background"] {
+  pointer-events: none;
+  isolation: isolate;
+}
+
+[data-morph-phase="dissolved"] {
+  visibility: hidden;
+}
+
+/* Morph shards */
+.morph-shard {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+/* Layer role states */
+[data-layer-role="background"] {
+  position: fixed !important;
+  z-index: 0 !important;
+  pointer-events: none;
+}
+
+[data-layer-role="hybrid"] {
+  isolation: isolate;
+  mix-blend-mode: normal;
+}
+
+[data-layer-role="visualizer-mask"] {
+  mix-blend-mode: screen;
+  isolation: isolate;
+}
+
+/* Text morphing states */
+[data-text-morphable="true"] {
+  display: inline-block;
+  will-change: transform;
+}
+
+[data-text-morphable="true"] .char {
+  display: inline-block;
+  will-change: transform, opacity;
+  transform-style: preserve-3d;
+}
+
+[data-text-morphable="true"] .word {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+/* Visualizer interaction states */
+.visualizer {
+  transition: opacity 800ms cubic-bezier(0.23, 1, 0.32, 1),
+              filter 600ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.visualizer.zoomed-out {
+  /* Higher density - appears to recede */
+  opacity: 0.85;
+  filter: blur(1px);
+}
+
+.visualizer.zoomed-in {
+  /* Lower density - appears to advance */
+  opacity: 0.95;
+  filter: blur(0px);
+}
+
+/* Hover-focus pipeline states */
+.scroll-card[data-focus-active="true"] {
+  z-index: 5;
+}
+
+.scroll-card[data-focus-active="true"] .scroll-card__inner {
+  box-shadow: 0 60px 240px rgba(88, 166, 184, 0.45);
+}
+
+.immersion-card[data-focus-active="true"] .immersion-card__frame {
+  box-shadow: 0 80px 280px rgba(12, 18, 36, 0.7);
+  filter: saturate(1.25) brightness(1.08);
+}
+
+/* Section transition states */
+.section[data-transitioning="true"] {
+  isolation: isolate;
+}
+
+.section[data-transitioning="true"] > * {
+  will-change: transform, opacity;
+}
+
+/* Parallax depth markers */
+[data-parallax] {
+  will-change: transform;
+  transform-style: preserve-3d;
+}
+
+[data-parallax="0.3"] {
+  transform: translateZ(30px);
+}
+
+[data-parallax="0.5"] {
+  transform: translateZ(50px);
+}
+
+[data-parallax="0.7"] {
+  transform: translateZ(70px);
+}
+
+/* Entry/exit animation helpers */
+.morph-entry {
+  animation: morphEntry 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes morphEntry {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(60px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.morph-exit {
+  animation: morphExit 0.8s cubic-bezier(0.55, 0.05, 0.68, 0.19) forwards;
+}
+
+@keyframes morphExit {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(-40px);
+  }
+}
+
+/* Text wave effect */
+@keyframes textWave {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+/* Splitting animation overlays */
+.scroll-card__inner.splitting {
+  overflow: visible;
+  position: relative;
+  z-index: 10;
+}
+
+/* Layer composition helpers */
+.layer-stack-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.layer-stack-visualizer-primary {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+}
+
+.layer-stack-content {
+  position: relative;
+  z-index: 2;
+}
+
+.layer-stack-visualizer-accent {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Performance optimizations */
+.scroll-card,
+.immersion-card,
+.narrative__item {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* Smooth state transitions */
+.scroll-card__inner,
+.immersion-card__frame {
+  transition:
+    background 600ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 400ms cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 500ms cubic-bezier(0.23, 1, 0.32, 1),
+    backdrop-filter 600ms cubic-bezier(0.23, 1, 0.32, 1),
+    mix-blend-mode 400ms ease;
+}
+
+/* Focus glow effects */
+.scroll-card[data-hover="true"]::after {
+  content: "";
+  position: absolute;
+  inset: -100px;
+  background: radial-gradient(
+    circle at center,
+    hsla(var(--card-accent-h), 80%, calc(var(--card-accent-bright) + 8%), 0.15),
+    transparent 60%
+  );
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0;
+  animation: focusGlowPulse 2s ease-in-out infinite;
+}
+
+@keyframes focusGlowPulse {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+/* Responsive morph adjustments */
+@media (max-width: 900px) {
+  .morph-shard {
+    transform: scale(0.85);
+  }
+
+  [data-morph-phase="splitting"] {
+    overflow: hidden !important;
+  }
+
+  .scroll-card[data-hover="true"]::after {
+    display: none;
+  }
+}
+
 @media (max-width: 600px) {
   .section {
     padding-inline: clamp(1.25rem, 6vw, 2rem);
@@ -1333,5 +1600,39 @@ a:focus {
   .immersion-card__trigger {
     width: 100%;
     text-align: center;
+  }
+
+  .morph-shard {
+    display: none;
+  }
+
+  [data-parallax] {
+    transform: none !important;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .morph-entry,
+  .morph-exit,
+  .morph-shard,
+  [data-morph-phase="splitting"] {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .scroll-card__inner,
+  .immersion-card__frame {
+    transition: opacity 300ms ease;
+  }
+
+  @keyframes textWave {
+    0%, 100% {
+      transform: none;
+    }
+  }
+
+  [data-parallax] {
+    transform: none !important;
   }
 }
