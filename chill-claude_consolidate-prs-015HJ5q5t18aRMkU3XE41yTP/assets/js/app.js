@@ -1269,13 +1269,26 @@ async function init() {
   const visualizers = new VisualizerConductor("visualizer-primary", "visualizer-accent");
   visualizers.start();
 
-  // Initialize Lenis smooth scrolling for buttery scroll feel
+  // Check for reduced motion preference (accessibility)
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Initialize Lenis with award-winning smooth scroll settings
+  // Inspired by Apple, Awwwards winners - sophisticated easing curves
   const lenis = new window.Lenis({
-    duration: 1.2,
-    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    duration: prefersReducedMotion ? 0.1 : 1.6, // Longer duration = more luxurious feel
+    easing: (t) => {
+      // Custom easing: ease-out-expo with bounce (like Apple Watch page)
+      // Faster at start, elegant slow down at end
+      return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+    },
     orientation: 'vertical',
-    smoothWheel: true,
-    smoothTouch: false
+    gestureOrientation: 'vertical',
+    smoothWheel: !prefersReducedMotion,
+    smoothTouch: false, // Keep native feel on mobile
+    wheelMultiplier: 1.0,
+    touchMultiplier: 2.0,
+    infinite: false,
+    autoResize: true
   });
 
   function raf(time) {
