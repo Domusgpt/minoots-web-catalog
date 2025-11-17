@@ -30,6 +30,9 @@ export class PinChoreography {
     this.setupCapstonePinning();
     this.setupFooterPinning();
 
+    // CRITICAL: Refresh ScrollTrigger to recalculate all positions after pins created
+    this.ScrollTrigger.refresh();
+
     console.log('📌 Pin Choreography System initialized');
   }
 
@@ -45,6 +48,18 @@ export class PinChoreography {
     const title = hero.querySelector('.hero__title');
     const subtitle = hero.querySelector('.hero__subtitle');
     const lead = hero.querySelector('.hero__lead');
+
+    // Null check for required child elements
+    if (!title || !subtitle || !lead) {
+      console.warn('⚠️  Hero missing required children (.hero__title, .hero__subtitle, or .hero__lead), skipping pin');
+      return;
+    }
+
+    // Initialize SplitType for character animations
+    if (this.SplitType) {
+      new this.SplitType(title, { types: 'chars' });
+      new this.SplitType(subtitle, { types: 'words' });
+    }
 
     // Pin the hero content
     this.ScrollTrigger.create({

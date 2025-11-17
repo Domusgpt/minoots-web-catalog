@@ -1269,6 +1269,32 @@ async function init() {
   const visualizers = new VisualizerConductor("visualizer-primary", "visualizer-accent");
   visualizers.start();
 
+  // Initialize Lenis smooth scrolling (CRITICAL for smooth pins!)
+  const lenis = new window.Lenis({
+    duration: 1.2,
+    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    orientation: 'vertical',
+    smoothWheel: true,
+    smoothTouch: false  // Disable on touch to prevent conflicts
+  });
+
+  // Lenis RAF loop
+  function raf(time) {
+    lenis.raf(time);
+    requestAnimationFrame(raf);
+  }
+  requestAnimationFrame(raf);
+
+  // Sync Lenis with ScrollTrigger (CRITICAL!)
+  lenis.on('scroll', window.ScrollTrigger.update);
+  window.gsap.ticker.add((time) => {
+    lenis.raf(time * 1000);
+  });
+  window.gsap.ticker.lagSmoothing(0);
+
+  // Make Lenis globally accessible for debugging
+  window.lenis = lenis;
+
   // setupImmersionReactivity(visualizers); // DISABLED - handled by PinChoreography
 
   // Initialize comprehensive animation orchestrator
