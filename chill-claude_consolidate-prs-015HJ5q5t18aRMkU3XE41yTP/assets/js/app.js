@@ -1269,7 +1269,7 @@ async function init() {
   const visualizers = new VisualizerConductor("visualizer-primary", "visualizer-accent");
   visualizers.start();
 
-  setupImmersionReactivity(visualizers);
+  // setupImmersionReactivity(visualizers); // DISABLED - handled by PinChoreography
 
   // Initialize comprehensive animation orchestrator
   const animationOrchestrator = new AnimationOrchestrator(visualizers);
@@ -1296,8 +1296,14 @@ async function init() {
   window.MORPH_ENGINE = morphEngine;
   window.PIN_CHOREOGRAPHY = pinChoreography;
 
+  // OLD SYSTEMS DISABLED - Now handled by PinChoreography
+  // setupCardReactivity(visualizers);  // Kept for hover effects
+  // setupScrollDirector(visualizers);  // DISABLED - conflicts with pinning
+  // setupImmersionReactivity(visualizers);  // DISABLED - handled by PinChoreography
+
+  // Keep card hover effects only (not scroll director)
   setupCardReactivity(visualizers);
-  setupScrollDirector(visualizers);
+
   initFooter();
 
   console.log('🚀 Minoots Temporal Systems initialized');
