@@ -1273,12 +1273,12 @@ async function init() {
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // Initialize Lenis with award-winning smooth scroll settings
-  // Inspired by Apple, Awwwards winners - sophisticated easing curves
+  // Tuned for optimal pacing: smooth but not sluggish
   const lenis = new window.Lenis({
-    duration: prefersReducedMotion ? 0.1 : 1.6, // Longer duration = more luxurious feel
+    duration: prefersReducedMotion ? 0.1 : 1.0, // Balanced: smooth but responsive
     easing: (t) => {
-      // Custom easing: ease-out-expo with bounce (like Apple Watch page)
-      // Faster at start, elegant slow down at end
+      // Custom easing: ease-out-expo (Apple Watch style)
+      // Fast start → elegant slow down
       return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
     },
     orientation: 'vertical',
@@ -1320,27 +1320,14 @@ async function init() {
   // Initialize GSAP-based morphing choreography (circle → expanded → background)
   const morphChoreography = new MorphChoreography(visualizers);
 
-  // Initialize pin-and-transform choreography (elements lock in center while transforming)
-  const { PinChoreography } = await import('./pin-choreography.js');
-  const pinChoreography = new PinChoreography(
-    visualizers,
-    window.gsap,
-    window.ScrollTrigger,
-    window.SplitType
-  );
+  // PIN CHOREOGRAPHY DISABLED - Was breaking pacing (added 1170vh of extra space)
+  // Natural scroll flow works better for this design
+  // const { PinChoreography } = await import('./pin-choreography.js');
+  // const pinChoreography = new PinChoreography(visualizers, window.gsap, window.ScrollTrigger, window.SplitType);
 
-  // Initialize advanced morph engine (text morphing, hover effects, layer switching)
-  const { MorphEngine } = await import('./morph-engine.js');
-  const morphEngine = new MorphEngine(
-    visualizers,
-    window.gsap,
-    window.ScrollTrigger,
-    window.SplitType
-  );
-
-  // Make engines globally accessible for debugging
-  window.MORPH_ENGINE = morphEngine;
-  window.PIN_CHOREOGRAPHY = pinChoreography;
+  // MORPH ENGINE DISABLED - Keeping it simple, MorphChoreography handles morphing
+  // const { MorphEngine } = await import('./morph-engine.js');
+  // const morphEngine = new MorphEngine(visualizers, window.gsap, window.ScrollTrigger, window.SplitType);
 
   setupCardReactivity(visualizers);
   initFooter();
@@ -1348,8 +1335,7 @@ async function init() {
   console.log('🚀 Minoots Temporal Systems initialized');
   console.log('   ✨ Lenis smooth scrolling');
   console.log('   🎬 GSAP morphing choreography');
-  console.log('   📌 Pin-and-transform choreography');
-  console.log('   🌀 Advanced morph engine');
+  console.log('   🎭 Visualizer choreography');
   console.log('   🎨 Section mode switching');
   console.log('   🌊 Parallax layers');
   console.log('   💫 WebGL 4D visualizers');

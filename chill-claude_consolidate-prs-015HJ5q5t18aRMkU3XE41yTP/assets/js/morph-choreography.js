@@ -56,7 +56,7 @@ export class MorphChoreography {
         trigger: card,
         start: 'top bottom',
         end: 'bottom top',
-        scrub: 1.8, // Higher = more luxurious, smooth feel (was 1.2)
+        scrub: 0.8, // Tuned for responsive pacing (was 1.8 - too sluggish)
         anticipatePin: 1, // Smoother entry
         // markers: true, // Uncomment for debugging
         onUpdate: (self) => {
