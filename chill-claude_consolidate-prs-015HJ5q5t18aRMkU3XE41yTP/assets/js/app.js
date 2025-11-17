@@ -1250,7 +1250,7 @@ function initFooter() {
   }
 }
 
-async function init() {
+function init() {
   // Make systems data globally available for morph choreography
   window.APP_DATA = { systems };
 
@@ -1269,40 +1269,22 @@ async function init() {
   const visualizers = new VisualizerConductor("visualizer-primary", "visualizer-accent");
   visualizers.start();
 
+  setupImmersionReactivity(visualizers);
+
   // Initialize comprehensive animation orchestrator
   const animationOrchestrator = new AnimationOrchestrator(visualizers);
 
-  // PIN CHOREOGRAPHY DISABLED - Conflicts with setupScrollDirector
-  // The old scroll system works, don't break it
-  // const { PinChoreography } = await import('./pin-choreography.js');
-  // const pinChoreography = new PinChoreography(visualizers, window.gsap, window.ScrollTrigger, window.SplitType);
+  // Initialize GSAP-based morphing choreography
+  const morphChoreography = new MorphChoreography(visualizers);
 
-  // MORPH ENGINE DISABLED - Not needed, adds complexity
-  // const { MorphEngine } = await import('./morph-engine.js');
-  // const morphEngine = new MorphEngine(visualizers, window.gsap, window.ScrollTrigger, window.SplitType);
-
-  // RE-ENABLE ALL SYSTEMS - They work together
   setupCardReactivity(visualizers);
-  setupScrollDirector(visualizers);
-  setupImmersionReactivity(visualizers);
-
   initFooter();
 
   console.log('🚀 Minoots Temporal Systems initialized');
-  console.log('   ✨ Lenis smooth scrolling');
-  console.log('   🎭 SplitType text animations');
-  console.log('   📌 Pin-and-Transform Choreography (NEW!)');
-  console.log('   🌀 Advanced Morph Engine');
+  console.log('   🎬 GSAP morphing choreography');
   console.log('   🎨 Section mode switching');
   console.log('   🌊 Parallax layers');
   console.log('   💫 WebGL 4D visualizers');
-  console.log('   🔄 Layer switching system');
-  console.log('   ⚡ Hover-focus pipeline');
-  console.log('');
-  console.log('   Total site height: ~5700vh (stretchy rhythm)');
-  console.log('   Hero: 250vh pinned | Narrative: 400vh');
-  console.log('   Immersion: 600vh | Orchestra: 3600vh');
-  console.log('   Capstone: 200vh | Footer: 150vh');
 }
 
 document.addEventListener("DOMContentLoaded", init);
