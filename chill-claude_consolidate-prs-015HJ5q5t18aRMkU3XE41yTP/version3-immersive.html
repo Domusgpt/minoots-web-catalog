@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minoots Temporal Systems — Immersive Experimental</title>
+  <style>
+    /* RESET & BASE */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --color-bg: #000000;
+      --color-text: #ffffff;
+      --color-accent: #00ff88;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-display: "SF Pro Display", -apple-system, sans-serif;
+      --ease-smooth: cubic-bezier(0.87, 0, 0.13, 1);
+      --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    html {
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    /* CUSTOM CURSOR */
+    .cursor-ring {
+      position: fixed;
+      width: 40px;
+      height: 40px;
+      border: 2px solid var(--color-accent);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 10000;
+      transition: transform 0.15s ease, width 0.3s ease, height 0.3s ease;
+      transform: translate(-50%, -50%);
+      mix-blend-mode: screen;
+    }
+
+    .cursor-dot {
+      position: fixed;
+      width: 8px;
+      height: 8px;
+      background: var(--color-accent);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 10001;
+      transform: translate(-50%, -50%);
+      mix-blend-mode: screen;
+    }
+
+    .cursor-ring.hover {
+      width: 80px;
+      height: 80px;
+      border-color: #ff0088;
+    }
+
+    /* MAGNETIC MENU */
+    .magnetic-menu {
+      position: fixed;
+      top: 50px;
+      right: 50px;
+      z-index: 1000;
+      display: flex;
+      gap: 30px;
+    }
+
+    .magnetic-item {
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--color-text);
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.3s var(--ease-smooth);
+      position: relative;
+    }
+
+    .magnetic-item::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: var(--color-accent);
+      transition: width 0.4s var(--ease-smooth);
+    }
+
+    .magnetic-item:hover::after {
+      width: 100%;
+    }
+
+    /* LOADING SCREEN */
+    .loading-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--color-bg);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.8s var(--ease-smooth);
+    }
+
+    .loading-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-text {
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    /* SECTION BASE */
+    .panel {
+      min-height: 100vh;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding: 0 clamp(30px, 5vw, 100px);
+    }
+
+    /* VISUALIZER BACKGROUND */
+    .visualizer-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      opacity: 0.6;
+      transition: opacity 0.8s var(--ease-smooth);
+    }
+
+    .visualizer-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* HERO PANEL */
+    .hero-panel {
+      z-index: 10;
+    }
+
+    .hero-content {
+      text-align: center;
+      position: relative;
+      z-index: 10;
+    }
+
+    .hero-label {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--color-accent);
+      margin-bottom: 30px;
+      opacity: 0;
+    }
+
+    .hero-title {
+      font-size: clamp(60px, 12vw, 200px);
+      font-weight: 900;
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+      font-family: var(--font-display);
+      margin-bottom: 40px;
+      opacity: 0;
+      clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+    }
+
+    .hero-description {
+      font-size: clamp(18px, 2.5vw, 28px);
+      font-weight: 300;
+      line-height: 1.6;
+      max-width: 700px;
+      margin: 0 auto 60px;
+      opacity: 0;
+    }
+
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 15px;
+      padding: 20px 50px;
+      background: transparent;
+      border: 2px solid var(--color-accent);
+      color: var(--color-text);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-decoration: none;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.5s var(--ease-expo);
+      opacity: 0;
+    }
+
+    .hero-cta::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--color-accent);
+      transform: translateX(-100%);
+      transition: transform 0.5s var(--ease-expo);
+    }
+
+    .hero-cta:hover::before {
+      transform: translateX(0);
+    }
+
+    .hero-cta:hover {
+      color: var(--color-bg);
+    }
+
+    .hero-cta span {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* REVEAL PANEL */
+    .reveal-panel {
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+    }
+
+    .reveal-content {
+      max-width: 1200px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+
+    .reveal-text h2 {
+      font-size: clamp(40px, 6vw, 80px);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      margin-bottom: 30px;
+      background: linear-gradient(135deg, #00ff88 0%, #00ffff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .reveal-text p {
+      font-size: 18px;
+      line-height: 1.8;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 20px;
+    }
+
+    .reveal-visual {
+      aspect-ratio: 1;
+      background: rgba(0, 255, 136, 0.05);
+      border: 1px solid rgba(0, 255, 136, 0.2);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .reveal-visual::before {
+      content: '';
+      position: absolute;
+      inset: -50%;
+      background: conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        var(--color-accent) 90deg,
+        transparent 180deg
+      );
+      animation: rotate 8s linear infinite;
+      opacity: 0.3;
+    }
+
+    @keyframes rotate {
+      to { transform: rotate(360deg); }
+    }
+
+    .reveal-visual-text {
+      font-size: clamp(40px, 5vw, 80px);
+      font-weight: 900;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* SYSTEMS PANEL */
+    .systems-panel {
+      background: var(--color-bg);
+    }
+
+    .systems-content {
+      max-width: 1400px;
+      width: 100%;
+    }
+
+    .systems-title {
+      font-size: clamp(50px, 8vw, 120px);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      text-align: center;
+      margin-bottom: 80px;
+    }
+
+    .systems-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2px;
+    }
+
+    .system-item {
+      background: var(--color-bg);
+      padding: 50px 30px;
+      text-align: center;
+      transition: all 0.6s var(--ease-expo);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .system-item::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--color-accent) 0%, #00ffff 100%);
+      opacity: 0;
+      transition: opacity 0.6s var(--ease-smooth);
+    }
+
+    .system-item:hover::before {
+      opacity: 0.1;
+    }
+
+    .system-item:hover {
+      transform: scale(1.05);
+      z-index: 10;
+    }
+
+    .system-number {
+      font-size: 100px;
+      font-weight: 900;
+      line-height: 1;
+      opacity: 0.05;
+      margin-bottom: 20px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .system-name {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .system-desc {
+      font-size: 14px;
+      line-height: 1.7;
+      color: rgba(255, 255, 255, 0.6);
+      position: relative;
+      z-index: 2;
+    }
+
+    /* FINALE PANEL */
+    .finale-panel {
+      background: linear-gradient(135deg, #1a0a2e 0%, #0a0a0a 100%);
+    }
+
+    .finale-content {
+      text-align: center;
+    }
+
+    .finale-title {
+      font-size: clamp(50px, 10vw, 160px);
+      font-weight: 900;
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      margin-bottom: 40px;
+      background: linear-gradient(135deg, #ff0088 0%, #00ff88 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .finale-email {
+      font-size: clamp(24px, 4vw, 56px);
+      font-weight: 300;
+      color: var(--color-text);
+      text-decoration: none;
+      display: inline-block;
+      position: relative;
+      margin-bottom: 60px;
+    }
+
+    .finale-email::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 0;
+      height: 3px;
+      background: var(--color-accent);
+      transition: width 0.6s var(--ease-expo);
+    }
+
+    .finale-email:hover::after {
+      width: 100%;
+    }
+
+    .finale-links {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      list-style: none;
+    }
+
+    .finale-links a {
+      color: rgba(255, 255, 255, 0.5);
+      text-decoration: none;
+      font-size: 14px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: color 0.3s var(--ease-smooth);
+    }
+
+    .finale-links a:hover {
+      color: var(--color-accent);
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 1024px) {
+      .reveal-content {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+
+      .systems-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        cursor: auto;
+      }
+
+      .cursor-ring, .cursor-dot {
+        display: none;
+      }
+
+      .magnetic-menu {
+        top: 20px;
+        right: 20px;
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .systems-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .finale-links {
+        flex-direction: column;
+        gap: 20px;
+      }
+    }
+
+    /* REDUCED MOTION */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+
+      .reveal-visual::before {
+        animation: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LOADING SCREEN -->
+  <div class="loading-screen">
+    <div class="loading-text">Loading Experience</div>
+  </div>
+
+  <!-- CUSTOM CURSOR -->
+  <div class="cursor-ring"></div>
+  <div class="cursor-dot"></div>
+
+  <!-- MAGNETIC MENU -->
+  <nav class="magnetic-menu">
+    <a href="#hero" class="magnetic-item">Intro</a>
+    <a href="#reveal" class="magnetic-item">Vision</a>
+    <a href="#systems" class="magnetic-item">Systems</a>
+    <a href="#contact" class="magnetic-item">Contact</a>
+  </nav>
+
+  <!-- VISUALIZER BACKGROUND -->
+  <div class="visualizer-bg">
+    <canvas id="visualizer" class="visualizer-canvas"></canvas>
+  </div>
+
+  <!-- HERO PANEL -->
+  <section id="hero" class="panel hero-panel">
+    <div class="hero-content">
+      <div class="hero-label">Temporal Systems</div>
+      <h1 class="hero-title">BEYOND<br>TIME</h1>
+      <p class="hero-description">An experimental journey through temporal mechanics, spatial choreography, and immersive experiences.</p>
+      <a href="#reveal" class="hero-cta">
+        <span>Begin Journey</span>
+        <span>↓</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- REVEAL PANEL -->
+  <section id="reveal" class="panel reveal-panel">
+    <div class="reveal-content">
+      <div class="reveal-text">
+        <h2>Precision<br>Meets<br>Poetry</h2>
+        <p>We craft digital experiences that exist at the intersection of engineering precision and artistic expression.</p>
+        <p>Every frame is choreographed. Every interaction considered. Every moment intentional.</p>
+      </div>
+      <div class="reveal-visual">
+        <div class="reveal-visual-text">✦</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SYSTEMS PANEL -->
+  <section id="systems" class="panel systems-panel">
+    <div class="systems-content">
+      <h2 class="systems-title">NINE SYSTEMS</h2>
+      <div class="systems-grid">
+
+        <div class="system-item">
+          <div class="system-number">1</div>
+          <h3 class="system-name">Chronos</h3>
+          <p class="system-desc">Temporal state management</p>
+        </div>
+
+        <div class="system-item">
+          <div class="system-number">2</div>
+          <h3 class="system-name">Flow</h3>
+          <p class="system-desc">Animation orchestration</p>
+        </div>
+
+        <div class="system-item">
+          <div class="system-number">3</div>
+          <h3 class="system-name">Morph</h3>
+          <p class="system-desc">Shape transformation</p>
+        </div>
+
+        <div class="system-item">
+          <div class="system-number">4</div>
+          <h3 class="system-name">Parallax</h3>
+          <p class="system-desc">Depth simulation</p>
+        </div>
+
+        <div class="system-item">
+          <div class="system-number">5</div>
+          <h3 class="system-name">Visual</h3>
+          <p class="system-desc">WebGL conductor</p>
+        </div>
+
+        <div class="system-item">
+          <div class="system-number">6</div>
+          <h3 class="system-name">State</h3>
+          <p class="system-desc">UI machine</p>
+        </div>
+
+        <div class="system-item">
+          <div class="system-number">7</div>
+          <h3 class="system-name">Lenis</h3>
+          <p class="system-desc">Smooth scroll</p>
+        </div>
+
+        <div class="system-item">
+          <div class="system-number">8</div>
+          <h3 class="system-name">Pin</h3>
+          <p class="system-desc">Viewport lock</p>
+        </div>
+
+        <div class="system-item">
+          <div class="system-number">9</div>
+          <h3 class="system-name">A11y</h3>
+          <p class="system-desc">Accessibility layer</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- FINALE PANEL -->
+  <section id="contact" class="panel finale-panel">
+    <div class="finale-content">
+      <h2 class="finale-title">CREATE<br>TOGETHER</h2>
+      <a href="mailto:hello@minoots.com" class="finale-email">hello@minoots.com</a>
+      <ul class="finale-links">
+        <li><a href="https://twitter.com/minoots">Twitter</a></li>
+        <li><a href="https://github.com/minoots">GitHub</a></li>
+        <li><a href="https://dribbble.com/minoots">Dribbble</a></li>
+        <li><a href="https://instagram.com/minoots">Instagram</a></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SCRIPTS -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+
+  <script>
+    // Loading screen
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        document.querySelector('.loading-screen').classList.add('hidden');
+      }, 1000);
+    });
+
+    // Custom cursor
+    const cursorRing = document.querySelector('.cursor-ring');
+    const cursorDot = document.querySelector('.cursor-dot');
+    let mouseX = 0, mouseY = 0;
+    let ringX = 0, ringY = 0;
+    let dotX = 0, dotY = 0;
+
+    document.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    });
+
+    function animateCursor() {
+      ringX += (mouseX - ringX) * 0.15;
+      ringY += (mouseY - ringY) * 0.15;
+      dotX += (mouseX - dotX) * 0.25;
+      dotY += (mouseY - dotY) * 0.25;
+
+      cursorRing.style.left = ringX + 'px';
+      cursorRing.style.top = ringY + 'px';
+      cursorDot.style.left = dotX + 'px';
+      cursorDot.style.top = dotY + 'px';
+
+      requestAnimationFrame(animateCursor);
+    }
+    animateCursor();
+
+    // Cursor hover effects
+    const hoverElements = document.querySelectorAll('a, button, .system-item');
+    hoverElements.forEach(el => {
+      el.addEventListener('mouseenter', () => cursorRing.classList.add('hover'));
+      el.addEventListener('mouseleave', () => cursorRing.classList.remove('hover'));
+    });
+
+    // Magnetic effect on menu items
+    const magneticItems = document.querySelectorAll('.magnetic-item');
+    magneticItems.forEach(item => {
+      item.addEventListener('mousemove', (e) => {
+        const rect = item.getBoundingClientRect();
+        const x = e.clientX - rect.left - rect.width / 2;
+        const y = e.clientY - rect.top - rect.height / 2;
+        item.style.transform = `translate(${x * 0.3}px, ${y * 0.3}px)`;
+      });
+
+      item.addEventListener('mouseleave', () => {
+        item.style.transform = 'translate(0, 0)';
+      });
+    });
+
+    // Initialize Lenis smooth scroll
+    const lenis = new Lenis({
+      duration: 1.4,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+      wheelMultiplier: 0.8,
+    });
+
+    function raf(time) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+
+    // GSAP + ScrollTrigger setup
+    gsap.registerPlugin(ScrollTrigger);
+
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add((time) => lenis.raf(time * 1000));
+    gsap.ticker.lagSmoothing(0);
+
+    // Hero animations
+    const heroTimeline = gsap.timeline({ delay: 1.2 });
+
+    heroTimeline
+      .to('.hero-label', { opacity: 1, duration: 1, ease: 'power3.out' })
+      .to('.hero-title', {
+        opacity: 1,
+        clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)',
+        duration: 1.4,
+        ease: 'expo.out'
+      }, '-=0.5')
+      .to('.hero-description', { opacity: 1, duration: 1, ease: 'power3.out' }, '-=0.8')
+      .to('.hero-cta', { opacity: 1, duration: 1, ease: 'power3.out' }, '-=0.6');
+
+    // Reveal panel animations
+    gsap.from('.reveal-text h2', {
+      y: 100,
+      opacity: 0,
+      duration: 1.4,
+      ease: 'expo.out',
+      scrollTrigger: {
+        trigger: '.reveal-panel',
+        start: 'top 60%',
+        once: true,
+      },
+    });
+
+    gsap.from('.reveal-text p', {
+      y: 60,
+      opacity: 0,
+      stagger: 0.2,
+      duration: 1,
+      ease: 'power3.out',
+      scrollTrigger: {
+        trigger: '.reveal-panel',
+        start: 'top 60%',
+        once: true,
+      },
+    });
+
+    gsap.from('.reveal-visual', {
+      scale: 0.8,
+      opacity: 0,
+      duration: 1.4,
+      ease: 'back.out(1.4)',
+      scrollTrigger: {
+        trigger: '.reveal-panel',
+        start: 'top 60%',
+        once: true,
+      },
+    });
+
+    // Systems grid animations
+    gsap.from('.systems-title', {
+      y: 80,
+      opacity: 0,
+      duration: 1.2,
+      ease: 'expo.out',
+      scrollTrigger: {
+        trigger: '.systems-panel',
+        start: 'top 60%',
+        once: true,
+      },
+    });
+
+    gsap.utils.toArray('.system-item').forEach((item, i) => {
+      gsap.from(item, {
+        y: 100,
+        opacity: 0,
+        duration: 1,
+        ease: 'power3.out',
+        scrollTrigger: {
+          trigger: item,
+          start: 'top 85%',
+          once: true,
+        },
+        delay: (i % 3) * 0.1,
+      });
+    });
+
+    // Finale animations
+    gsap.from('.finale-title', {
+      y: 100,
+      opacity: 0,
+      clipPath: 'polygon(0 0, 100% 0, 100% 0, 0 0)',
+      duration: 1.4,
+      ease: 'expo.out',
+      scrollTrigger: {
+        trigger: '.finale-panel',
+        start: 'top 60%',
+        once: true,
+      },
+    });
+
+    gsap.from('.finale-email', {
+      y: 60,
+      opacity: 0,
+      duration: 1.2,
+      ease: 'power3.out',
+      scrollTrigger: {
+        trigger: '.finale-panel',
+        start: 'top 60%',
+        once: true,
+      },
+      delay: 0.3,
+    });
+
+    gsap.from('.finale-links', {
+      y: 40,
+      opacity: 0,
+      duration: 1,
+      ease: 'power3.out',
+      scrollTrigger: {
+        trigger: '.finale-panel',
+        start: 'top 60%',
+        once: true,
+      },
+      delay: 0.5,
+    });
+
+    // Simple visualizer background (placeholder)
+    const canvas = document.getElementById('visualizer');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    let particles = [];
+    const particleCount = 100;
+
+    for (let i = 0; i < particleCount; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
+        size: Math.random() * 2 + 0.5,
+      });
+    }
+
+    function drawVisualizer() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = 'rgba(0, 255, 136, 0.6)';
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw connections
+        particles.forEach(p2 => {
+          const dx = p.x - p2.x;
+          const dy = p.y - p2.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 150) {
+            ctx.strokeStyle = `rgba(0, 255, 136, ${0.2 * (1 - dist / 150)})`;
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+          }
+        });
+      });
+
+      requestAnimationFrame(drawVisualizer);
+    }
+    drawVisualizer();
+
+    // Smooth anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          lenis.scrollTo(target, { offset: 0, duration: 2 });
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>

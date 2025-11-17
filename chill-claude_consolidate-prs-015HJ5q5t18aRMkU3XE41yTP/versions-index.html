@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minoots Temporal Systems — Three Visions</title>
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --color-bg: #0a0a0a;
+      --color-text: #e8e8e8;
+      --color-accent-1: #4a9eff;
+      --color-accent-2: #8b5cf6;
+      --color-accent-3: #00ff88;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --ease: cubic-bezier(0.87, 0, 0.13, 1);
+    }
+
+    html {
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 50px 50px;
+    }
+
+    .container {
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 80px;
+    }
+
+    .header__eyebrow {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 20px;
+    }
+
+    .header__title {
+      font-size: clamp(40px, 8vw, 80px);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, var(--color-accent-1) 0%, var(--color-accent-2) 50%, var(--color-accent-3) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header__subtitle {
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.6);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .versions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 30px;
+      margin-bottom: 60px;
+    }
+
+    .version-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 40px 30px;
+      text-decoration: none;
+      color: var(--color-text);
+      transition: all 0.5s var(--ease);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .version-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--card-color) 0%, transparent 100%);
+      opacity: 0;
+      transition: opacity 0.5s var(--ease);
+    }
+
+    .version-card:hover::before {
+      opacity: 0.1;
+    }
+
+    .version-card:hover {
+      transform: translateY(-8px);
+      border-color: var(--card-color);
+    }
+
+    .version-card__number {
+      font-size: 60px;
+      font-weight: 900;
+      line-height: 1;
+      opacity: 0.1;
+      margin-bottom: 20px;
+      color: var(--card-color);
+      position: relative;
+      z-index: 2;
+    }
+
+    .version-card__label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--card-color);
+      margin-bottom: 12px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .version-card__title {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .version-card__desc {
+      font-size: 15px;
+      line-height: 1.7;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 24px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .version-card__features {
+      list-style: none;
+      margin-bottom: 30px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .version-card__features li {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 8px;
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .version-card__features li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--card-color);
+    }
+
+    .version-card__cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--card-color);
+      position: relative;
+      z-index: 2;
+    }
+
+    .footer {
+      text-align: center;
+      padding-top: 60px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .footer__text {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-bottom: 20px;
+    }
+
+    .footer__link {
+      color: var(--color-accent-2);
+      text-decoration: none;
+      transition: opacity 0.3s var(--ease);
+    }
+
+    .footer__link:hover {
+      opacity: 0.7;
+    }
+
+    @media (max-width: 768px) {
+      .versions {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header class="header">
+      <div class="header__eyebrow">Design Exploration</div>
+      <h1 class="header__title">Three Visions</h1>
+      <p class="header__subtitle">Three distinct approaches to temporal systems—each with unique layout, flow, and interaction patterns inspired by award-winning designs.</p>
+    </header>
+
+    <div class="versions">
+
+      <a href="version1-geometric.html" class="version-card" style="--card-color: #4a9eff;">
+        <div class="version-card__number">01</div>
+        <div class="version-card__label">Geometric Minimal</div>
+        <h2 class="version-card__title">Precision Grid</h2>
+        <p class="version-card__desc">Typography-first design with surgical precision, grid-based layouts, and horizontal scroll sections.</p>
+        <ul class="version-card__features">
+          <li>Clean grid system</li>
+          <li>Horizontal scrolling</li>
+          <li>Minimal color palette</li>
+          <li>Typography hierarchy</li>
+          <li>Smooth transitions</li>
+        </ul>
+        <div class="version-card__cta">
+          <span>Explore Version</span>
+          <span>→</span>
+        </div>
+      </a>
+
+      <a href="version2-spatial.html" class="version-card" style="--card-color: #8b5cf6;">
+        <div class="version-card__number">02</div>
+        <div class="version-card__label">Spatial Bold</div>
+        <h2 class="version-card__title">Dynamic Space</h2>
+        <p class="version-card__desc">Large-scale typography, asymmetric layouts, bold color blocking, and custom cursor interactions.</p>
+        <ul class="version-card__features">
+          <li>Mega typography</li>
+          <li>Custom cursor</li>
+          <li>Dot navigation</li>
+          <li>Bold gradients</li>
+          <li>Depth layering</li>
+        </ul>
+        <div class="version-card__cta">
+          <span>Explore Version</span>
+          <span>→</span>
+        </div>
+      </a>
+
+      <a href="version3-immersive.html" class="version-card" style="--card-color: #00ff88;">
+        <div class="version-card__number">03</div>
+        <div class="version-card__label">Immersive Experimental</div>
+        <h2 class="version-card__title">Cinematic Flow</h2>
+        <p class="version-card__desc">Full-screen panels, WebGL visualizer background, magnetic navigation, and scroll-triggered clip-path reveals.</p>
+        <ul class="version-card__features">
+          <li>WebGL particles</li>
+          <li>Magnetic menu</li>
+          <li>Clip-path reveals</li>
+          <li>Dual cursor</li>
+          <li>Loading screen</li>
+        </ul>
+        <div class="version-card__cta">
+          <span>Explore Version</span>
+          <span>→</span>
+        </div>
+      </a>
+
+    </div>
+
+    <footer class="footer">
+      <p class="footer__text">Based on design patterns from <a href="https://www.harmlesscult.com/" class="footer__link" target="_blank">harmlesscult.com</a>, <a href="https://www.facetad.com/" class="footer__link" target="_blank">facetad.com</a>, and <a href="https://www.drakedesign.work/" class="footer__link" target="_blank">drakedesign.work</a></p>
+      <p class="footer__text">© 2025 Minoots Temporal Systems</p>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script>
+    // Animate cards in on load
+    gsap.from('.version-card', {
+      y: 60,
+      opacity: 0,
+      stagger: 0.15,
+      duration: 1,
+      ease: 'power3.out',
+      delay: 0.3,
+    });
+
+    gsap.from('.header > *', {
+      y: 40,
+      opacity: 0,
+      stagger: 0.1,
+      duration: 0.8,
+      ease: 'power3.out',
+    });
+  </script>
+
+</body>
+</html>

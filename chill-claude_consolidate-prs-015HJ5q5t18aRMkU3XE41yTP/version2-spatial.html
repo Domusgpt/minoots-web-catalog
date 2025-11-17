@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minoots Temporal Systems — Spatial Bold</title>
+  <style>
+    /* RESET & BASE */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --color-bg: #000000;
+      --color-purple: #8b5cf6;
+      --color-blue: #3b82f6;
+      --color-pink: #ec4899;
+      --color-orange: #f97316;
+      --color-cyan: #06b6d4;
+      --color-text: #ffffff;
+      --color-text-dim: #a1a1aa;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-display: "SF Pro Display", -apple-system, sans-serif;
+      --ease-smooth: cubic-bezier(0.87, 0, 0.13, 1);
+      --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    html {
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    /* CUSTOM CURSOR */
+    .cursor {
+      position: fixed;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--color-purple);
+      pointer-events: none;
+      z-index: 10000;
+      mix-blend-mode: difference;
+      transition: transform 0.15s ease, width 0.3s ease, height 0.3s ease;
+      transform: translate(-50%, -50%);
+    }
+
+    .cursor.hover {
+      width: 60px;
+      height: 60px;
+      background: var(--color-pink);
+    }
+
+    /* DOT NAVIGATION */
+    .dot-nav {
+      position: fixed;
+      right: 40px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .dot-nav__item {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.4s var(--ease-smooth);
+      position: relative;
+    }
+
+    .dot-nav__item.active {
+      width: 12px;
+      height: 12px;
+      background: var(--color-purple);
+    }
+
+    .dot-nav__item:hover {
+      background: var(--color-pink);
+      transform: scale(1.5);
+    }
+
+    .dot-nav__label {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s var(--ease-smooth);
+      white-space: nowrap;
+    }
+
+    .dot-nav__item:hover .dot-nav__label {
+      opacity: 1;
+    }
+
+    /* SECTION BASE */
+    .section {
+      min-height: 100vh;
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 0 clamp(20px, 5vw, 100px);
+      overflow: hidden;
+    }
+
+    /* HERO SECTION */
+    .hero {
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%);
+    }
+
+    .hero__mega-text {
+      font-size: clamp(80px, 18vw, 280px);
+      font-weight: 900;
+      line-height: 0.9;
+      letter-spacing: -0.05em;
+      font-family: var(--font-display);
+      background: linear-gradient(135deg, var(--color-purple) 0%, var(--color-pink) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      position: relative;
+      z-index: 2;
+      opacity: 0;
+      transform: translateY(100px);
+    }
+
+    .hero__subtitle {
+      font-size: clamp(20px, 3vw, 40px);
+      font-weight: 300;
+      margin-top: 40px;
+      max-width: 800px;
+      color: var(--color-text-dim);
+      opacity: 0;
+      transform: translateY(60px);
+    }
+
+    .hero__floating-shape {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.3;
+      animation: float 20s ease-in-out infinite;
+    }
+
+    .hero__floating-shape:nth-child(1) {
+      width: 400px;
+      height: 400px;
+      background: var(--color-purple);
+      top: 10%;
+      right: 10%;
+      animation-delay: 0s;
+    }
+
+    .hero__floating-shape:nth-child(2) {
+      width: 300px;
+      height: 300px;
+      background: var(--color-blue);
+      bottom: 20%;
+      left: 5%;
+      animation-delay: -7s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -50px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+
+    /* SYSTEMS SECTION */
+    .systems {
+      background: var(--color-bg);
+    }
+
+    .systems__container {
+      width: 100%;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    .systems__grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 1px;
+    }
+
+    .system-card {
+      background: var(--color-bg);
+      padding: 60px 40px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.6s var(--ease-smooth);
+    }
+
+    .system-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, var(--card-color, var(--color-purple)) 0%, transparent 100%);
+      opacity: 0;
+      transition: opacity 0.6s var(--ease-smooth);
+    }
+
+    .system-card:hover::before {
+      opacity: 0.15;
+    }
+
+    .system-card:hover {
+      transform: scale(1.05);
+      z-index: 10;
+    }
+
+    .system-card__number {
+      font-size: 80px;
+      font-weight: 900;
+      line-height: 1;
+      opacity: 0.1;
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      color: var(--card-color, var(--color-purple));
+    }
+
+    .system-card__title {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .system-card__desc {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--color-text-dim);
+      position: relative;
+      z-index: 2;
+    }
+
+    /* SHOWCASE SECTION */
+    .showcase {
+      background: linear-gradient(135deg, #0a0a2e 0%, #0a1a2e 100%);
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .showcase__title {
+      font-size: clamp(60px, 12vw, 160px);
+      font-weight: 900;
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      text-align: center;
+      margin-bottom: 80px;
+      background: linear-gradient(135deg, var(--color-cyan) 0%, var(--color-blue) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .showcase__cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .showcase-card {
+      aspect-ratio: 1;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.6s var(--ease-smooth);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .showcase-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--card-color, var(--color-purple)) 0%, transparent 100%);
+      opacity: 0;
+      transition: opacity 0.6s var(--ease-smooth);
+    }
+
+    .showcase-card:hover::before {
+      opacity: 0.2;
+    }
+
+    .showcase-card:hover {
+      transform: translateY(-10px);
+      border-color: var(--card-color, var(--color-purple));
+    }
+
+    .showcase-card__icon {
+      font-size: 48px;
+      margin-bottom: auto;
+      position: relative;
+      z-index: 2;
+    }
+
+    .showcase-card__title {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .showcase-card__desc {
+      font-size: 14px;
+      color: var(--color-text-dim);
+      position: relative;
+      z-index: 2;
+    }
+
+    /* CONTACT SECTION */
+    .contact {
+      background: linear-gradient(135deg, #1a0a2e 0%, #0a0a0a 100%);
+      flex-direction: column;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .contact__title {
+      font-size: clamp(60px, 12vw, 140px);
+      font-weight: 900;
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      margin-bottom: 40px;
+      background: linear-gradient(135deg, var(--color-orange) 0%, var(--color-pink) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .contact__email {
+      font-size: clamp(24px, 4vw, 56px);
+      font-weight: 300;
+      color: var(--color-text);
+      text-decoration: none;
+      display: inline-block;
+      position: relative;
+      transition: all 0.4s var(--ease-smooth);
+    }
+
+    .contact__email::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--color-orange) 0%, var(--color-pink) 100%);
+      transition: width 0.6s var(--ease-smooth);
+    }
+
+    .contact__email:hover::after {
+      width: 100%;
+    }
+
+    .contact__social {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-top: 60px;
+      list-style: none;
+    }
+
+    .contact__social a {
+      color: var(--color-text-dim);
+      text-decoration: none;
+      font-size: 14px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: color 0.3s var(--ease-smooth);
+    }
+
+    .contact__social a:hover {
+      color: var(--color-pink);
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 1024px) {
+      .systems__grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .dot-nav {
+        right: 20px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        cursor: auto;
+      }
+
+      .cursor {
+        display: none;
+      }
+
+      .systems__grid {
+        grid-template-columns: 1fr;
+      }
+
+      .dot-nav {
+        display: none;
+      }
+
+      .contact__social {
+        flex-direction: column;
+        gap: 20px;
+      }
+    }
+
+    /* REDUCED MOTION */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+
+      .hero__floating-shape {
+        animation: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CUSTOM CURSOR -->
+  <div class="cursor"></div>
+
+  <!-- DOT NAVIGATION -->
+  <nav class="dot-nav">
+    <div class="dot-nav__item active" data-section="0">
+      <span class="dot-nav__label">Hero</span>
+    </div>
+    <div class="dot-nav__item" data-section="1">
+      <span class="dot-nav__label">Systems</span>
+    </div>
+    <div class="dot-nav__item" data-section="2">
+      <span class="dot-nav__label">Showcase</span>
+    </div>
+    <div class="dot-nav__item" data-section="3">
+      <span class="dot-nav__label">Contact</span>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="section hero" data-section-index="0">
+    <div class="hero__floating-shape"></div>
+    <div class="hero__floating-shape"></div>
+    <div>
+      <h1 class="hero__mega-text">TEMPORAL<br>SYSTEMS</h1>
+      <p class="hero__subtitle">Precision-engineered experiences that bend time and space through code.</p>
+    </div>
+  </section>
+
+  <!-- SYSTEMS -->
+  <section class="section systems" data-section-index="1">
+    <div class="systems__container">
+      <div class="systems__grid">
+
+        <div class="system-card" style="--card-color: #8b5cf6;">
+          <div class="system-card__number">01</div>
+          <h3 class="system-card__title">Chronos Engine</h3>
+          <p class="system-card__desc">Precision time tracking with microsecond accuracy for temporal state management.</p>
+        </div>
+
+        <div class="system-card" style="--card-color: #3b82f6;">
+          <div class="system-card__number">02</div>
+          <h3 class="system-card__title">Flow Director</h3>
+          <p class="system-card__desc">Orchestrates scroll-based animations with physics-informed easing curves.</p>
+        </div>
+
+        <div class="system-card" style="--card-color: #ec4899;">
+          <div class="system-card__number">03</div>
+          <h3 class="system-card__title">Morph Matrix</h3>
+          <p class="system-card__desc">Shape-shifting geometries that respond to user interaction and scroll position.</p>
+        </div>
+
+        <div class="system-card" style="--card-color: #f97316;">
+          <div class="system-card__number">04</div>
+          <h3 class="system-card__title">Parallax Core</h3>
+          <p class="system-card__desc">Multi-layer depth simulation creating immersive spatial relationships.</p>
+        </div>
+
+        <div class="system-card" style="--card-color: #06b6d4;">
+          <div class="system-card__number">05</div>
+          <h3 class="system-card__title">Visual Conductor</h3>
+          <p class="system-card__desc">WebGL-powered visualizations synchronized with content choreography.</p>
+        </div>
+
+        <div class="system-card" style="--card-color: #10b981;">
+          <div class="system-card__number">06</div>
+          <h3 class="system-card__title">State Machine</h3>
+          <p class="system-card__desc">Manages complex UI states with predictable transitions and rollback.</p>
+        </div>
+
+        <div class="system-card" style="--card-color: #8b5cf6;">
+          <div class="system-card__number">07</div>
+          <h3 class="system-card__title">Lenis Integration</h3>
+          <p class="system-card__desc">Buttery-smooth scroll interpolation with configurable momentum.</p>
+        </div>
+
+        <div class="system-card" style="--card-color: #ec4899;">
+          <div class="system-card__number">08</div>
+          <h3 class="system-card__title">Pin Orchestrator</h3>
+          <p class="system-card__desc">Locks content in viewport while driving internal transformations.</p>
+        </div>
+
+        <div class="system-card" style="--card-color: #3b82f6;">
+          <div class="system-card__number">09</div>
+          <h3 class="system-card__title">Accessibility Layer</h3>
+          <p class="system-card__desc">Ensures all motion respects user preferences and assistive technology.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- SHOWCASE -->
+  <section class="section showcase" data-section-index="2">
+    <div>
+      <h2 class="showcase__title">FEATURED<br>WORK</h2>
+      <div class="showcase__cards">
+
+        <div class="showcase-card" style="--card-color: #8b5cf6;">
+          <div class="showcase-card__icon">✦</div>
+          <div>
+            <h3 class="showcase-card__title">Cosmic Interface</h3>
+            <p class="showcase-card__desc">Nebula-inspired navigation system with particle physics.</p>
+          </div>
+        </div>
+
+        <div class="showcase-card" style="--card-color: #06b6d4;">
+          <div class="showcase-card__icon">◆</div>
+          <div>
+            <h3 class="showcase-card__title">Quantum Scroll</h3>
+            <p class="showcase-card__desc">Multi-dimensional scrolling experience with parallel timelines.</p>
+          </div>
+        </div>
+
+        <div class="showcase-card" style="--card-color: #ec4899;">
+          <div class="showcase-card__icon">●</div>
+          <div>
+            <h3 class="showcase-card__title">Temporal Grid</h3>
+            <p class="showcase-card__desc">Time-based layout system that evolves with user interaction.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="section contact" data-section-index="3">
+    <div>
+      <h2 class="contact__title">LET'S TALK</h2>
+      <a href="mailto:hello@minoots.com" class="contact__email">hello@minoots.com</a>
+      <ul class="contact__social">
+        <li><a href="https://twitter.com/minoots">Twitter</a></li>
+        <li><a href="https://github.com/minoots">GitHub</a></li>
+        <li><a href="https://dribbble.com/minoots">Dribbble</a></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SCRIPTS -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+
+  <script>
+    // Custom cursor
+    const cursor = document.querySelector('.cursor');
+    let mouseX = 0, mouseY = 0;
+    let cursorX = 0, cursorY = 0;
+
+    document.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    });
+
+    function animateCursor() {
+      cursorX += (mouseX - cursorX) * 0.2;
+      cursorY += (mouseY - cursorY) * 0.2;
+      cursor.style.left = cursorX + 'px';
+      cursor.style.top = cursorY + 'px';
+      requestAnimationFrame(animateCursor);
+    }
+    animateCursor();
+
+    // Cursor hover effects
+    const hoverElements = document.querySelectorAll('a, button, .system-card, .showcase-card, .dot-nav__item');
+    hoverElements.forEach(el => {
+      el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+      el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+    });
+
+    // Initialize Lenis smooth scroll
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+      wheelMultiplier: 1.0,
+    });
+
+    function raf(time) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+
+    // GSAP + ScrollTrigger setup
+    gsap.registerPlugin(ScrollTrigger);
+
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add((time) => lenis.raf(time * 1000));
+    gsap.ticker.lagSmoothing(0);
+
+    // Hero animations
+    gsap.to('.hero__mega-text', {
+      opacity: 1,
+      y: 0,
+      duration: 1.4,
+      ease: 'power3.out',
+      delay: 0.2,
+    });
+
+    gsap.to('.hero__subtitle', {
+      opacity: 1,
+      y: 0,
+      duration: 1.2,
+      ease: 'power3.out',
+      delay: 0.5,
+    });
+
+    // System cards parallax
+    gsap.utils.toArray('.system-card').forEach((card, i) => {
+      gsap.from(card, {
+        y: 100,
+        opacity: 0,
+        duration: 1,
+        ease: 'power3.out',
+        scrollTrigger: {
+          trigger: card,
+          start: 'top 85%',
+          once: true,
+        },
+        delay: (i % 3) * 0.1,
+      });
+    });
+
+    // Showcase cards reveal
+    gsap.utils.toArray('.showcase-card').forEach((card, i) => {
+      gsap.from(card, {
+        y: 80,
+        opacity: 0,
+        scale: 0.9,
+        duration: 1,
+        ease: 'back.out(1.2)',
+        scrollTrigger: {
+          trigger: card,
+          start: 'top 85%',
+          once: true,
+        },
+        delay: i * 0.15,
+      });
+    });
+
+    // Dot navigation
+    const sections = gsap.utils.toArray('.section');
+    const dots = gsap.utils.toArray('.dot-nav__item');
+
+    sections.forEach((section, i) => {
+      ScrollTrigger.create({
+        trigger: section,
+        start: 'top center',
+        end: 'bottom center',
+        onEnter: () => updateDotNav(i),
+        onEnterBack: () => updateDotNav(i),
+      });
+    });
+
+    function updateDotNav(index) {
+      dots.forEach((dot, i) => {
+        if (i === index) {
+          dot.classList.add('active');
+        } else {
+          dot.classList.remove('active');
+        }
+      });
+    }
+
+    // Dot navigation click
+    dots.forEach((dot, i) => {
+      dot.addEventListener('click', () => {
+        lenis.scrollTo(sections[i], { offset: 0, duration: 1.5 });
+      });
+    });
+  </script>
+
+</body>
+</html>
