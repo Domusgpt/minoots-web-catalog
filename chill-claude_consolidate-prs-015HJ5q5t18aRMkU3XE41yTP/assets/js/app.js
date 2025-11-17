@@ -1284,16 +1284,22 @@ async function init() {
   }
   requestAnimationFrame(raf);
 
-  lenis.on('scroll', window.ScrollTrigger.update);
+  // All reactivity systems working together
+  setupImmersionReactivity(visualizers);
+  setupScrollDirector(visualizers);
+
+  // CRITICAL: Make Lenis dispatch native scroll events so setupScrollDirector works
+  lenis.on('scroll', (e) => {
+    window.ScrollTrigger.update();
+    // Trigger native scroll event so setupScrollDirector's listener fires
+    window.dispatchEvent(new Event('scroll'));
+  });
+
   window.gsap.ticker.add((time) => {
     lenis.raf(time * 1000);
   });
   window.gsap.ticker.lagSmoothing(0);
   window.lenis = lenis;
-
-  // All reactivity systems working together
-  setupImmersionReactivity(visualizers);
-  setupScrollDirector(visualizers);
 
   // Initialize comprehensive animation orchestrator
   const animationOrchestrator = new AnimationOrchestrator(visualizers);
