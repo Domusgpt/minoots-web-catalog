@@ -42,9 +42,6 @@ export class PinChoreography {
     const hero = document.querySelector('.hero');
     if (!hero) return;
 
-    // Stretch the section
-    hero.style.minHeight = '250vh';
-
     const title = hero.querySelector('.hero__title');
     const subtitle = hero.querySelector('.hero__subtitle');
     const lead = hero.querySelector('.hero__lead');
@@ -55,7 +52,8 @@ export class PinChoreography {
       start: 'top top',
       end: '+=150vh',
       pin: lead,
-      pinSpacing: false,
+      pinSpacing: true, // CRITICAL: true to create space for pin
+      anticipatePin: 1,
       onUpdate: (self) => this.onHeroProgress(self.progress, title, subtitle)
     });
 
@@ -154,15 +152,12 @@ export class PinChoreography {
     const narrative = document.querySelector('.narrative');
     if (!narrative) return;
 
-    narrative.style.minHeight = '400vh';
-
     const cards = narrative.querySelectorAll('.narrative__item');
 
     cards.forEach((card, index) => {
       // Wrap each card in a container for pinning
       const container = document.createElement('div');
       container.className = 'narrative-pin-container';
-      container.style.height = '133vh';
       card.parentNode.insertBefore(container, card);
       container.appendChild(card);
 
@@ -172,7 +167,8 @@ export class PinChoreography {
         start: 'top 20%',
         end: '+=100vh',
         pin: card,
-        pinSpacing: false,
+        pinSpacing: true, // CRITICAL: true to create space for pin
+        anticipatePin: 1,
         onUpdate: (self) => this.onNarrativeCardProgress(self.progress, card, index)
       });
     });
@@ -237,14 +233,9 @@ export class PinChoreography {
     const immersion = document.querySelector('.immersion');
     if (!immersion) return;
 
-    immersion.style.minHeight = '600vh';
-
     const cards = immersion.querySelectorAll('.immersion-card');
 
     cards.forEach((card, index) => {
-      // Each card gets 200vh of space
-      card.style.minHeight = '200vh';
-
       const frame = card.querySelector('.immersion-card__frame');
       if (!frame) return;
 
@@ -254,7 +245,7 @@ export class PinChoreography {
         start: 'top top',
         end: '+=150vh',
         pin: frame,
-        pinSpacing: false,
+        pinSpacing: true, // CRITICAL: true to create space for pin
         anticipatePin: 1,
         onUpdate: (self) => this.onImmersionProgress(self.progress, card, frame, index)
       });
@@ -407,14 +398,9 @@ export class PinChoreography {
     const orchestra = document.querySelector('.orchestra');
     if (!orchestra) return;
 
-    orchestra.style.minHeight = '3600vh';
-
     const cards = orchestra.querySelectorAll('.scroll-card');
 
     cards.forEach((card, index) => {
-      // Each card gets 400vh of space
-      card.style.height = '400vh';
-
       const inner = card.querySelector('.scroll-card__inner');
       if (!inner) return;
 
@@ -426,7 +412,7 @@ export class PinChoreography {
         start: 'top top',
         end: '+=350vh',
         pin: inner,
-        pinSpacing: false,
+        pinSpacing: true, // CRITICAL: true to create space for pin
         anticipatePin: 1,
         onUpdate: (self) => this.onOrchestraProgress(self.progress, card, inner, index, stageCount)
       });
@@ -684,8 +670,6 @@ export class PinChoreography {
     const capstone = document.querySelector('.capstone');
     if (!capstone) return;
 
-    capstone.style.minHeight = '200vh';
-
     const inner = capstone.querySelector('.capstone__inner');
     if (!inner) return;
 
@@ -694,7 +678,8 @@ export class PinChoreography {
       start: 'top top',
       end: '+=150vh',
       pin: inner,
-      pinSpacing: false,
+      pinSpacing: true, // CRITICAL: true to create space for pin
+      anticipatePin: 1,
       onUpdate: (self) => {
         const p = self.progress;
 
@@ -734,7 +719,6 @@ export class PinChoreography {
     // Wrap footer in container for proper pinning
     const container = document.createElement('div');
     container.className = 'footer-pin-container';
-    container.style.minHeight = '150vh';
     footer.parentNode.insertBefore(container, footer);
     container.appendChild(footer);
 
@@ -743,7 +727,8 @@ export class PinChoreography {
       start: 'top bottom',
       end: '+=120vh',
       pin: footer,
-      pinSpacing: false,
+      pinSpacing: true, // CRITICAL: true to create space for pin
+      anticipatePin: 1,
       onUpdate: (self) => {
         const p = self.progress;
 
