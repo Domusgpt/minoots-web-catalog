@@ -1269,66 +1269,22 @@ async function init() {
   const visualizers = new VisualizerConductor("visualizer-primary", "visualizer-accent");
   visualizers.start();
 
-  // Initialize Lenis smooth scrolling (CRITICAL for smooth pins!)
-  const lenis = new window.Lenis({
-    duration: 1.2,
-    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-    orientation: 'vertical',
-    smoothWheel: true,
-    smoothTouch: false  // Disable on touch to prevent conflicts
-  });
-
-  // Lenis RAF loop
-  function raf(time) {
-    lenis.raf(time);
-    requestAnimationFrame(raf);
-  }
-  requestAnimationFrame(raf);
-
-  // Sync Lenis with ScrollTrigger (CRITICAL!)
-  lenis.on('scroll', window.ScrollTrigger.update);
-  window.gsap.ticker.add((time) => {
-    lenis.raf(time * 1000);
-  });
-  window.gsap.ticker.lagSmoothing(0);
-
-  // Make Lenis globally accessible for debugging
-  window.lenis = lenis;
-
-  // setupImmersionReactivity(visualizers); // DISABLED - handled by PinChoreography
-
   // Initialize comprehensive animation orchestrator
   const animationOrchestrator = new AnimationOrchestrator(visualizers);
 
-  // Initialize PIN-AND-TRANSFORM CHOREOGRAPHY (new system with proper rhythm)
-  const { PinChoreography } = await import('./pin-choreography.js');
-  const pinChoreography = new PinChoreography(
-    visualizers,
-    window.gsap,
-    window.ScrollTrigger,
-    window.SplitType
-  );
+  // PIN CHOREOGRAPHY DISABLED - Conflicts with setupScrollDirector
+  // The old scroll system works, don't break it
+  // const { PinChoreography } = await import('./pin-choreography.js');
+  // const pinChoreography = new PinChoreography(visualizers, window.gsap, window.ScrollTrigger, window.SplitType);
 
-  // Initialize ADVANCED MORPH ENGINE (for hover effects and text morphing)
-  const { MorphEngine } = await import('./morph-engine.js');
-  const morphEngine = new MorphEngine(
-    visualizers,
-    window.gsap,
-    window.ScrollTrigger,
-    window.SplitType
-  );
+  // MORPH ENGINE DISABLED - Not needed, adds complexity
+  // const { MorphEngine } = await import('./morph-engine.js');
+  // const morphEngine = new MorphEngine(visualizers, window.gsap, window.ScrollTrigger, window.SplitType);
 
-  // Make engines globally accessible for debugging
-  window.MORPH_ENGINE = morphEngine;
-  window.PIN_CHOREOGRAPHY = pinChoreography;
-
-  // OLD SYSTEMS DISABLED - Now handled by PinChoreography
-  // setupCardReactivity(visualizers);  // Kept for hover effects
-  // setupScrollDirector(visualizers);  // DISABLED - conflicts with pinning
-  // setupImmersionReactivity(visualizers);  // DISABLED - handled by PinChoreography
-
-  // Keep card hover effects only (not scroll director)
+  // RE-ENABLE ALL SYSTEMS - They work together
   setupCardReactivity(visualizers);
+  setupScrollDirector(visualizers);
+  setupImmersionReactivity(visualizers);
 
   initFooter();
 
