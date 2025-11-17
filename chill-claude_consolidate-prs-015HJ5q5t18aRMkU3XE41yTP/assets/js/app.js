@@ -1320,14 +1320,19 @@ async function init() {
   // Initialize GSAP-based morphing choreography (circle → expanded → background)
   const morphChoreography = new MorphChoreography(visualizers);
 
-  // PIN CHOREOGRAPHY DISABLED - Was breaking pacing (added 1170vh of extra space)
-  // Natural scroll flow works better for this design
-  // const { PinChoreography } = await import('./pin-choreography.js');
-  // const pinChoreography = new PinChoreography(visualizers, window.gsap, window.ScrollTrigger, window.SplitType);
+  // FULL CHOREOGRAPHY: All systems working together with TUNED durations
+  // PinChoreography: Pin durations reduced from 1170vh total → 310vh total
+  // MorphEngine: Text morphing and hover effects
+  // Everything coordinated for rhythmic, intentional scroll experience
+  const { PinChoreography } = await import('./pin-choreography.js');
+  const pinChoreography = new PinChoreography(visualizers, window.gsap, window.ScrollTrigger, window.SplitType);
 
-  // MORPH ENGINE DISABLED - Keeping it simple, MorphChoreography handles morphing
-  // const { MorphEngine } = await import('./morph-engine.js');
-  // const morphEngine = new MorphEngine(visualizers, window.gsap, window.ScrollTrigger, window.SplitType);
+  const { MorphEngine } = await import('./morph-engine.js');
+  const morphEngine = new MorphEngine(visualizers, window.gsap, window.ScrollTrigger, window.SplitType);
+
+  // Expose for debugging
+  window.MORPH_ENGINE = morphEngine;
+  window.PIN_CHOREOGRAPHY = pinChoreography;
 
   setupCardReactivity(visualizers);
   initFooter();

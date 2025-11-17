@@ -63,22 +63,22 @@ export class PinChoreography {
       new this.SplitType(subtitle, { types: 'words' });
     }
 
-    // Pin the hero content
+    // Pin the hero content (TUNED: 150vh → 100vh for better pacing)
     this.ScrollTrigger.create({
       trigger: hero,
       start: 'top top',
-      end: '+=150vh',
+      end: '+=100vh',
       pin: lead,
       pinSpacing: true, // CRITICAL: true to create space for pin
       anticipatePin: 1,
       onUpdate: (self) => this.onHeroProgress(self.progress, title, subtitle)
     });
 
-    // Visualizer transformation during pin
+    // Visualizer transformation during pin (extends beyond pin for smooth transition)
     this.ScrollTrigger.create({
       trigger: hero,
       start: 'top top',
-      end: '+=250vh',
+      end: '+=150vh',
       scrub: 1,
       onUpdate: (self) => {
         const p = self.progress;
@@ -178,11 +178,11 @@ export class PinChoreography {
       card.parentNode.insertBefore(container, card);
       container.appendChild(card);
 
-      // Pin each card
+      // Pin each card (TUNED: 100vh → 50vh for better rhythm)
       this.ScrollTrigger.create({
         trigger: container,
         start: 'top 20%',
-        end: '+=100vh',
+        end: '+=50vh',
         pin: card,
         pinSpacing: true, // CRITICAL: true to create space for pin
         anticipatePin: 1,
@@ -190,7 +190,7 @@ export class PinChoreography {
       });
     });
 
-    console.log(`📌 ${cards.length} narrative cards pinned, each for 100vh`);
+    console.log(`📌 ${cards.length} narrative cards pinned, each for 50vh`);
   }
 
   /**
@@ -256,11 +256,11 @@ export class PinChoreography {
       const frame = card.querySelector('.immersion-card__frame');
       if (!frame) return;
 
-      // Pin the card frame
+      // Pin the card frame (TUNED: 150vh → 50vh for better pacing)
       this.ScrollTrigger.create({
         trigger: card,
         start: 'top top',
-        end: '+=150vh',
+        end: '+=50vh',
         pin: frame,
         pinSpacing: true, // CRITICAL: true to create space for pin
         anticipatePin: 1,
@@ -268,7 +268,7 @@ export class PinChoreography {
       });
     });
 
-    console.log(`📌 ${cards.length} immersion cards pinned, each for 150vh`);
+    console.log(`📌 ${cards.length} immersion cards pinned, each for 50vh`);
   }
 
   /**
@@ -690,10 +690,11 @@ export class PinChoreography {
     const inner = capstone.querySelector('.capstone__inner');
     if (!inner) return;
 
+    // Pin the capstone (TUNED: 150vh → 50vh for better rhythm)
     this.ScrollTrigger.create({
       trigger: capstone,
       start: 'top top',
-      end: '+=150vh',
+      end: '+=50vh',
       pin: inner,
       pinSpacing: true, // CRITICAL: true to create space for pin
       anticipatePin: 1,
@@ -739,10 +740,11 @@ export class PinChoreography {
     footer.parentNode.insertBefore(container, footer);
     container.appendChild(footer);
 
+    // Pin the footer (TUNED: 120vh → 60vh for contemplative closure)
     this.ScrollTrigger.create({
       trigger: container,
       start: 'top bottom',
-      end: '+=120vh',
+      end: '+=60vh',
       pin: footer,
       pinSpacing: true, // CRITICAL: true to create space for pin
       anticipatePin: 1,
