@@ -1250,7 +1250,7 @@ function initFooter() {
   }
 }
 
-function init() {
+async function init() {
   // Make systems data globally available for morph choreography
   window.APP_DATA = { systems };
 
@@ -1269,19 +1269,68 @@ function init() {
   const visualizers = new VisualizerConductor("visualizer-primary", "visualizer-accent");
   visualizers.start();
 
+  // Initialize Lenis smooth scrolling for buttery scroll feel
+  const lenis = new window.Lenis({
+    duration: 1.2,
+    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    orientation: 'vertical',
+    smoothWheel: true,
+    smoothTouch: false
+  });
+
+  function raf(time) {
+    lenis.raf(time);
+    requestAnimationFrame(raf);
+  }
+  requestAnimationFrame(raf);
+
+  lenis.on('scroll', window.ScrollTrigger.update);
+  window.gsap.ticker.add((time) => {
+    lenis.raf(time * 1000);
+  });
+  window.gsap.ticker.lagSmoothing(0);
+  window.lenis = lenis;
+
+  // All reactivity systems working together
   setupImmersionReactivity(visualizers);
+  setupScrollDirector(visualizers);
 
   // Initialize comprehensive animation orchestrator
   const animationOrchestrator = new AnimationOrchestrator(visualizers);
 
-  // Initialize GSAP-based morphing choreography
+  // Initialize GSAP-based morphing choreography (circle → expanded → background)
   const morphChoreography = new MorphChoreography(visualizers);
+
+  // Initialize pin-and-transform choreography (elements lock in center while transforming)
+  const { PinChoreography } = await import('./pin-choreography.js');
+  const pinChoreography = new PinChoreography(
+    visualizers,
+    window.gsap,
+    window.ScrollTrigger,
+    window.SplitType
+  );
+
+  // Initialize advanced morph engine (text morphing, hover effects, layer switching)
+  const { MorphEngine } = await import('./morph-engine.js');
+  const morphEngine = new MorphEngine(
+    visualizers,
+    window.gsap,
+    window.ScrollTrigger,
+    window.SplitType
+  );
+
+  // Make engines globally accessible for debugging
+  window.MORPH_ENGINE = morphEngine;
+  window.PIN_CHOREOGRAPHY = pinChoreography;
 
   setupCardReactivity(visualizers);
   initFooter();
 
   console.log('🚀 Minoots Temporal Systems initialized');
+  console.log('   ✨ Lenis smooth scrolling');
   console.log('   🎬 GSAP morphing choreography');
+  console.log('   📌 Pin-and-transform choreography');
+  console.log('   🌀 Advanced morph engine');
   console.log('   🎨 Section mode switching');
   console.log('   🌊 Parallax layers');
   console.log('   💫 WebGL 4D visualizers');

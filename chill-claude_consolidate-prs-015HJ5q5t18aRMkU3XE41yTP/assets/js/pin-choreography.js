@@ -26,14 +26,16 @@ export class PinChoreography {
     this.setupHeroPinning();
     this.setupNarrativePinning();
     this.setupImmersionPinning();
-    this.setupOrchestraPinning();
+    // Orchestra section handled by MorphChoreography (circle → expanded → background morphing)
+    // this.setupOrchestraPinning(); // DISABLED - conflicts with MorphChoreography
     this.setupCapstonePinning();
     this.setupFooterPinning();
 
     // CRITICAL: Refresh ScrollTrigger to recalculate all positions after pins created
     this.ScrollTrigger.refresh();
 
-    console.log('📌 Pin Choreography System initialized');
+    console.log('📌 Pin Choreography System initialized (hero, narrative, immersion, capstone, footer)');
+    console.log('   Orchestra handled by MorphChoreography for morphing effects');
   }
 
   /**
