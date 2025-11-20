@@ -1250,7 +1250,7 @@ function initFooter() {
   }
 }
 
-function init() {
+async function init() {
   // Make systems data globally available for morph choreography
   window.APP_DATA = { systems };
 
@@ -1269,21 +1269,78 @@ function init() {
   const visualizers = new VisualizerConductor("visualizer-primary", "visualizer-accent");
   visualizers.start();
 
+  // Check for reduced motion preference (accessibility)
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Initialize Lenis with award-winning smooth scroll settings
+  // Tuned for optimal pacing: smooth but not sluggish
+  const lenis = new window.Lenis({
+    duration: prefersReducedMotion ? 0.1 : 1.0, // Balanced: smooth but responsive
+    easing: (t) => {
+      // Custom easing: ease-out-expo (Apple Watch style)
+      // Fast start → elegant slow down
+      return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+    },
+    orientation: 'vertical',
+    gestureOrientation: 'vertical',
+    smoothWheel: !prefersReducedMotion,
+    smoothTouch: false, // Keep native feel on mobile
+    wheelMultiplier: 1.0,
+    touchMultiplier: 2.0,
+    infinite: false,
+    autoResize: true
+  });
+
+  function raf(time) {
+    lenis.raf(time);
+    requestAnimationFrame(raf);
+  }
+  requestAnimationFrame(raf);
+
+  // All reactivity systems working together
   setupImmersionReactivity(visualizers);
+  setupScrollDirector(visualizers);
+
+  // CRITICAL: Make Lenis dispatch native scroll events so setupScrollDirector works
+  lenis.on('scroll', (e) => {
+    window.ScrollTrigger.update();
+    // Trigger native scroll event so setupScrollDirector's listener fires
+    window.dispatchEvent(new Event('scroll'));
+  });
+
+  window.gsap.ticker.add((time) => {
+    lenis.raf(time * 1000);
+  });
+  window.gsap.ticker.lagSmoothing(0);
+  window.lenis = lenis;
 
   // Initialize comprehensive animation orchestrator
   const animationOrchestrator = new AnimationOrchestrator(visualizers);
 
-  // Initialize GSAP-based morphing choreography
+  // Initialize GSAP-based morphing choreography (circle → expanded → background)
   const morphChoreography = new MorphChoreography(visualizers);
+
+  // FULL CHOREOGRAPHY: All systems working together with TUNED durations
+  // PinChoreography: Pin durations reduced from 1170vh total → 310vh total
+  // MorphEngine: Text morphing and hover effects
+  // Everything coordinated for rhythmic, intentional scroll experience
+  const { PinChoreography } = await import('./pin-choreography.js');
+  const pinChoreography = new PinChoreography(visualizers, window.gsap, window.ScrollTrigger, window.SplitType);
+
+  const { MorphEngine } = await import('./morph-engine.js');
+  const morphEngine = new MorphEngine(visualizers, window.gsap, window.ScrollTrigger, window.SplitType);
+
+  // Expose for debugging
+  window.MORPH_ENGINE = morphEngine;
+  window.PIN_CHOREOGRAPHY = pinChoreography;
 
   setupCardReactivity(visualizers);
   initFooter();
 
   console.log('🚀 Minoots Temporal Systems initialized');
   console.log('   ✨ Lenis smooth scrolling');
-  console.log('   🎭 SplitType text animations');
   console.log('   🎬 GSAP morphing choreography');
+  console.log('   🎭 Visualizer choreography');
   console.log('   🎨 Section mode switching');
   console.log('   🌊 Parallax layers');
   console.log('   💫 WebGL 4D visualizers');
